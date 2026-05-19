@@ -1,14 +1,18 @@
 /**
  * Tool: persona_doctor
  *
- * Composite, read-only lint of the AI Persona OS install:
- *   - workspace files (required + recommended)
- *   - MEMORY.md size vs limit
- *   - openclaw.json routing settings (via route-check)
- *   - tools.profile presence
- *   - VERSION.md presence + major-version match against the running plugin
+ * Composite health check across the AI Persona OS workspace and openclaw.json.
  *
- * No --fix mode in Phase 3 — Phase 6 adds remediation.
+ * Default mode (read-only): same as before — returns findings.
+ *
+ * `fix: true` mode (Phase 6 — safe scope only):
+ *   - workspace.missing.*   → write the missing file from the bundled templates
+ *   - version.missing       → write VERSION.md with the plugin version
+ *
+ * Out-of-scope here, deferred to Phase 7's operator.admin gating:
+ *   - routing.*             → mutates openclaw.json
+ *   - config.tools.profile  → mutates openclaw.json
+ *   - memory.size.*         → needs human curation (try persona_dream first)
  */
 
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
@@ -23,8 +27,26 @@ import {
 } from "../lib/doctor.js";
 import { DEFAULT_MEMORY_LIMIT_BYTES } from "../lib/workspace-status.js";
 import { PLUGIN_VERSION } from "../lib/version.js";
+import { resolveTemplatesRoot } from "../lib/setup.js";
+import {
+  applySafeFixes,
+  renderFixReport,
+  type DoctorFixApplied,
+} from "../lib/doctor-fixers.js";
 
 type Api = OpenClawPluginApi;
+
+type Params = {
+  fix?: unknown;
+};
+
+export type DoctorToolResult = {
+  report: DoctorReport;
+  /** Present when fix:true was requested. */
+  fixes?: DoctorFixApplied[];
+  /** Post-fix re-run report, when fix:true. Lets callers see what's left. */
+  postFixReport?: DoctorReport;
+};
 
 export function registerPersonaDoctor(api: Api): void {
   api.registerTool({
@@ -33,20 +55,32 @@ export function registerPersonaDoctor(api: Api): void {
     description:
       "Composite health check across the AI Persona OS workspace and " +
       "openclaw.json: required/recommended files, MEMORY.md size, routing " +
-      "settings, tools.profile, and VERSION.md drift. Lint-only — Phase 3 " +
-      "is read-only; the --fix mode lands in Phase 6.",
+      "settings, tools.profile, and VERSION.md drift. " +
+      "Pass fix:true to apply safe filesystem fixes (missing template files, " +
+      "VERSION.md). Routing/config mutations are NOT applied here — they " +
+      "require operator.admin scope (Phase 7).",
     parameters: {
       type: "object",
       additionalProperties: false,
-      properties: {},
+      properties: {
+        fix: {
+          type: "boolean",
+          description:
+            "When true, apply safe filesystem fixes (workspace.missing.*, version.missing). " +
+            "Routing/config fixes are deferred to Phase 7. Default false.",
+        },
+      },
     },
     async execute(
       _toolCallId,
-      _params
+      params
     ): Promise<{
       content: Array<{ type: "text"; text: string }>;
-      details: DoctorReport;
+      details: DoctorToolResult;
     }> {
+      const p = (params ?? {}) as Params;
+      const wantFix = p.fix === true;
+
       const pluginCfg = api.pluginConfig as
         | { workspaceOverride?: unknown; heartbeat?: { memoryLimitKB?: unknown } }
         | undefined;
@@ -73,9 +107,39 @@ export function registerPersonaDoctor(api: Api): void {
         memoryLimitBytes,
       });
 
+      if (!wantFix) {
+        return {
+          content: [{ type: "text", text: renderDoctorReport(report) }],
+          details: { report },
+        };
+      }
+
+      const templatesRoot = resolveTemplatesRoot(api.rootDir);
+      const fixes = await applySafeFixes(report.findings, {
+        workspace: resolution.path,
+        templatesRoot,
+        pluginVersion: PLUGIN_VERSION,
+      });
+
+      // Re-run after fixes so the caller sees the up-to-date picture.
+      const postFixReport = await runDoctor(resolution.path, {
+        pluginVersion: PLUGIN_VERSION,
+        memoryLimitBytes,
+      });
+
+      const text = [
+        renderDoctorReport(report),
+        "",
+        "── persona_doctor --fix ──",
+        renderFixReport(fixes),
+        "",
+        "── after fixes ──",
+        renderDoctorReport(postFixReport),
+      ].join("\n");
+
       return {
-        content: [{ type: "text", text: renderDoctorReport(report) }],
-        details: report,
+        content: [{ type: "text", text }],
+        details: { report, fixes, postFixReport },
       };
     },
   });

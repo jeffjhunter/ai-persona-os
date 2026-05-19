@@ -4,6 +4,58 @@ All notable changes to the AI Persona OS skill and plugin.
 
 ---
 
+## v3.0.0-alpha.5 — May 19, 2026 — Phase 6 partial (pre-release)
+
+**Write tools: `persona_checkpoint`, `persona_switch_soul`, `persona_blend_souls`, `persona_dream` + safe `persona_doctor --fix`.**
+
+This is the **safe subset** of Phase 6 — write tools that only touch workspace files (atomic writes, backup-before-overwrite). The two riskier Phase 6 items — the v2→v3 migration runner (which would disable the v2.0 skill) and the `before_tool_call` auto-checkpoint hook (fires on every tool call) — are deliberately deferred to a separate session.
+
+### Added — Write tools
+
+- **`persona_checkpoint`** — append a structured entry to `<WORKSPACE>/memory/YYYY-MM-DD.md`. Multiple checkpoints per day accumulate. Optional `tag` for filtering. Atomic write via the shared `lib/fs-write.ts` helper.
+- **`persona_switch_soul`** — replace SOUL.md with a named gallery soul. Backs up the prior SOUL.md to `memory/archive/soul-pre-switch-<ISO>.md` first. Atomic write.
+- **`persona_blend_souls`** — structurally merge two gallery souls into a hybrid SOUL.md. Parses canonical sections (intro, Core Truths, Communication Style), interleaves Core Truths from both sources, dedupes Communication Style bullets, preserves trailing sections from soul A as the base, surfaces both source intros. Backs up the prior SOUL.md to `memory/archive/soul-pre-blend-<ISO>.md`. Output is a starting point — edit to taste.
+- **`persona_dream`** — deterministic memory consolidation over the last N days (default 7) of daily logs. Extracts recurring section headers as "themes", captures key extracts, writes a structured report to `memory/.dreams/<ISO>.md`, appends a summary block to `DREAMS.md`. **No LLM** — the agent reading the report is the one who narrates the meaning. `dryRun: true` returns the report without writing.
+
+### Added — Safe `persona_doctor --fix`
+
+- New `fix: boolean` param. When true:
+  - **Fixes**: `workspace.missing.*` (writes the missing file from the bundled templates), `version.missing` (writes VERSION.md with the plugin version).
+  - **Skips with explanation**: `routing.*` and `config.tools.profile` ("requires operator.admin — Phase 7"), `memory.size.*` ("needs human curation — try persona_dream first").
+- Re-runs doctor after fixes and returns both the pre-fix report, the per-fix outcomes, and the post-fix report so callers can see what was applied and what remains.
+
+### Internal
+
+- New `lib/fs-write.ts` — shared `atomicWriteFile`, `atomicAppendFile`, `backupFile`, `isoDate`. Used by every write tool so failures and crash semantics are consistent.
+- New `lib/checkpoint.ts`, `lib/soul-ops.ts`, `lib/dream.ts`, `lib/doctor-fixers.ts` — pure logic separated from the tool wrappers.
+- Soul gallery lookup centralized in `lib/soul-ops.ts:findSoul()` so `persona_setup`, `persona_switch_soul`, and `persona_blend_souls` all use the same resolution path.
+
+### Tested
+
+**80/80 assertions passing** across Phase 4 + Phase 5 + Phase 6 suites:
+
+- **Phase 6 (`_phase6-test.sh`, 35/35)**: checkpoint creates + appends + rejects empty summary, switch_soul backs up byte-for-byte + writes new SOUL.md + rejects unknown soul, blend_souls produces hybrid with both source mentions + canonical sections + rejects same-soul, dream dryRun preserves disk + counts files + honors windowDays + real run writes both detail + DREAMS.md, doctor --fix applies safe fixes + skips routing with Phase-7 citation + post-fix report has fewer findings, atomic-write helpers leave no `.persona-write-tmp` files, pure libs work standalone.
+- **Phase 4 (`_phase4-test.sh`, 30/30)**: full regression. Adapted to the new `persona_doctor` result shape (`details.report.findings` instead of `details.findings`).
+- **Phase 5 (`_phase5-test.sh`, 15/15)**: full regression. Version regex made flexible (`v3\.0\.0-alpha\.\d+`) so future bumps don't break it.
+
+### Verified in OpenClaw 2026.5.18
+
+```
+[plugins] ai-persona-os@3.0.0-alpha.5 loading — 10 tool(s), 2 UI descriptor(s), 1 command(s), 1 hook(s)
+[plugins] ai-persona-os ready
+openclaw plugins doctor: No plugin issues detected.
+```
+
+### NOT in this release (intentionally deferred)
+
+- **v2→v3 migration runner** — would disable the v2.0 skill at `~/.openclaw/workspace/skills/ai-persona-os/`. Needs explicit reaffirmation from the maintainer before shipping (original "DO NOT touch v2.0 skill" instruction stands).
+- **`before_tool_call` hook for auto-checkpoint** — fires on every tool call. Higher blast radius than this release. Wants a separate session.
+- **Routing/config `--fix` paths** — mutate openclaw.json. Wait for Phase 7's operator.admin scope gating.
+- **CLI parity** — Phase 7.
+- **Bundled `skills/ai-persona-os/SKILL.md`** — Phase 8.
+
+---
+
 ## v3.0.0-alpha.4 — May 19, 2026 — Phase 5 (pre-release)
 
 **Native heartbeat — `heartbeat_prompt_contribution` replaces HEARTBEAT.md**

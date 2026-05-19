@@ -5,4 +5,4 @@
  * when shipping a new release. The doctor uses this to detect drift between
  * the running plugin and a workspace's VERSION.md.
  */
-export const PLUGIN_VERSION = "3.0.0-alpha.4";
+export const PLUGIN_VERSION = "3.0.0-alpha.5";

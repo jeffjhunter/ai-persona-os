@@ -2,9 +2,9 @@
 
 > **For the next Claude Code session.** Read this top-to-bottom before doing anything. It captures exact paths, environment quirks, what's already working, gotchas hit, and what the next phase needs to deliver.
 
-**Last updated:** 2026-05-19, end of Phase 5
+**Last updated:** 2026-05-19, end of Phase 6 (partial — deferred items called out)
 **Author of this checkpoint:** Claude (Opus 4.7)
-**Next phase:** Phase 6 — write tools + migrations + `--fix` modes (`persona_checkpoint`, `persona_switch_soul`, `persona_blend_souls`, `persona_dream`, `persona_doctor --fix`, `persona_route_check --fix`, v2→v3 migration runner)
+**Next phase:** Phase 6 finish OR Phase 7 — see § Deferred items below. The maintainer's call.
 
 ## Status snapshot
 
@@ -14,31 +14,33 @@
 | 2. Scaffold | ✅ done | v3.0.0-alpha.1 |
 | 3. Read-only tools + first UI | ✅ done | v3.0.0-alpha.2 |
 | 4. Setup wizard | ✅ done | v3.0.0-alpha.3 |
-| 5. Hooks + native heartbeat (this checkpoint) | ✅ done | v3.0.0-alpha.4 |
-| 6. Write tools + migrations | ⏳ next | — |
+| 5. Hooks + native heartbeat | ✅ done | v3.0.0-alpha.4 |
+| 6. Write tools + safe `--fix` (this checkpoint) | ✅ partial | v3.0.0-alpha.5 |
+| 6 deferred: migration runner + before_tool_call hook | ⏸ awaits decision | — |
 | 7. CLI + operator scopes | — | — |
 | 8. Tests + docs + ship | — | — |
 
 **What's loaded in the user's gateway right now:**
 ```
-[plugins] ai-persona-os@3.0.0-alpha.4 loading — 6 tool(s), 2 UI descriptor(s), 1 command(s), 1 hook(s)
+[plugins] ai-persona-os@3.0.0-alpha.5 loading — 10 tool(s), 2 UI descriptor(s), 1 command(s), 1 hook(s)
 [plugins] ai-persona-os ready
 openclaw plugins doctor: No plugin issues detected.
 ```
 
-Six tools: `persona_workspace_resolve`, `persona_status`, `persona_recall`, `persona_route_check`, `persona_doctor`, `persona_setup`. Two UI descriptors: `ai-persona-os.status-meter` (header meter), `ai-persona-os.setup-wizard` (wizard card). One slash command: `/persona-setup`. One session extension namespace: `setup`. **One hook: `heartbeat_prompt_contribution` — replaces v2.0's HEARTBEAT.md with a ~14-token line on heartbeat turns (98% token reduction measured).**
+**Ten tools**: `persona_workspace_resolve`, `persona_status`, `persona_recall`, `persona_route_check`, `persona_doctor` (+`--fix`), `persona_setup`, `persona_checkpoint`, `persona_switch_soul`, `persona_blend_souls`, `persona_dream`. Two UI descriptors: `ai-persona-os.status-meter`, `ai-persona-os.setup-wizard`. One slash command: `/persona-setup`. One session extension namespace: `setup`. One hook: `heartbeat_prompt_contribution` (98% token reduction vs HEARTBEAT.md).
 
 ## Test infrastructure (use these — they work)
 
-Three test scripts at `C:\Users\heroi\Claude Code\AI Persona OS\`:
+Four test scripts at `C:\Users\heroi\Claude Code\AI Persona OS\`:
 
 - **`_smoke-test.sh`** — registers a fake plugin API, loads the built plugin, exercises every tool against the user's real workspace. Good for "does the plugin still load?" after a change.
-- **`_phase4-test.sh`** — 30 assertions covering `persona_setup` against throwaway workspaces. Tests dryRun, idempotency, force-overwrite, soul override, error paths, session extension state, slash command parsing.
-- **`_phase5-test.sh`** — 15 assertions covering the heartbeat hook. Tests registration shape, compact/verbose formats, token budget (98% reduction verified), useNativeProtocol disable, missing-workspace graceful path, lifecycle cleanup, pure formatter.
+- **`_phase4-test.sh`** (30) — `persona_setup` against throwaway workspaces. dryRun, idempotency, force-overwrite, soul override, error paths, session extension state, slash command parsing.
+- **`_phase5-test.sh`** (15) — heartbeat hook. Registration shape, compact/verbose formats, token budget (98% reduction verified), useNativeProtocol disable, missing-workspace graceful path, lifecycle cleanup, pure formatter.
+- **`_phase6-test.sh`** (35) — write tools + doctor --fix. Checkpoint creates+appends, switch_soul backs up byte-for-byte, blend_souls merges canonical sections, dream walks N-day window, doctor --fix applies safe fixes + skips routing with Phase-7 citation, atomic-write helpers leave no .tmp files, pure libs work standalone.
 
-**Combined: 45/45 passing as of alpha.4 ship.**
+**Combined: 80/80 passing as of alpha.5 ship.**
 
-Tests now read `PLUGIN_VERSION` dynamically — bumping `lib/version.ts` doesn't break them.
+Tests read `PLUGIN_VERSION` dynamically — bumping `lib/version.ts` doesn't break them. Version regexes use `v3\.0\.0-alpha\.\d+` to stay flexible across bumps.
 
 Both run via:
 ```bash
@@ -47,38 +49,52 @@ wsl -d Ubuntu-24.04 -- bash -lc 'cp "/mnt/c/Users/heroi/Claude Code/AI Persona O
 
 Add new tests by extending `_phase4-test.sh` — its harness (fake API, kvp parser, ok()/bad() helpers) is reusable.
 
-## What Phase 6 needs to deliver
+## Deferred items (need explicit go-ahead)
 
-Per DESIGN-V3.md § Audit Update + the Phase 6 row:
+Two Phase 6 items were intentionally NOT shipped in alpha.5. They need explicit reaffirmation from the maintainer before they land:
 
-1. **`persona_checkpoint`** — writes a checkpoint to `memory/YYYY-MM-DD.md` NOW. Atomic write (use the `atomicWrite` pattern from `lib/setup.ts`). Optional `summary` param. Will be triggered both manually AND from a `before_tool_call` hook at 70%+ context (the hook half is also Phase 6).
+### 1. v2→v3 migration runner
 
-2. **`persona_switch_soul`** — swaps `<WORKSPACE>/SOUL.md` to a named gallery soul. Backs up the current SOUL.md to `memory/archive/soul-pre-switch-<ts>.md`. Use `findSoulTemplate()` from `lib/setup.ts` to resolve the source. Pair with `emitAgentEvent("ai-persona-os.soul-switched")` per the audit update.
+Would detect the v2.0 skill at `~/.openclaw/workspace/skills/ai-persona-os/`, prompt once, write `skills.entries.ai-persona-os.enabled = false` to disable it. Per DESIGN-V3 § Migration.
 
-3. **`persona_blend_souls`** — structurally merge two gallery souls into a hybrid SOUL.md. Backup original first.
+**Why deferred:** The maintainer's original session prompt said "DO NOT touch the v2.0 skill at `~/.openclaw/workspace/skills/ai-persona-os/` — leave it alone." That instruction is still load-bearing. The migration runner explicitly conflicts with it. Ship requires either lifting the instruction, scoping it to "don't modify directly, but the migration runner may prompt + disable on user consent", or deferring until Phase 8 (per DESIGN's original phasing).
 
-4. **`persona_dream`** — memory consolidation. Window of N days of daily logs (default 7). Appends to DREAMS.md, writes detail to `memory/.dreams/<ts>.md`. Probably also wants a `registerSessionSchedulerJob` registration so it can run on a schedule. Emit `ai-persona-os.dream-completed`.
+### 2. `before_tool_call` hook for context-pressure auto-checkpoint
 
-5. **`persona_doctor --fix`** — operate on doctor findings by category. Each finding's `id` is stable for targeting. Requires `operator.admin` scope per the audit update.
+Would fire on every tool call. At ≥70% context, calls `persona_checkpoint` automatically.
 
-6. **`persona_route_check --fix`** — same shape. Requires `operator.admin`.
+**Why deferred:** Fires on every tool call across every plugin in the gateway. A bug here breaks every interaction, not just heartbeats. Higher blast radius than alpha.4's heartbeat hook (which only fires on heartbeat turns, and the maintainer's heartbeat target isn't even configured). Wants a separate, focused session.
 
-7. **v2→v3 migration runner** — detect the v2.0 skill at `~/.openclaw/workspace/skills/ai-persona-os/`, prompt the user once, disable via config write. Per DESIGN § Migration. Use `api.registerMigrationProvider(...)` from the SDK.
+### 3. Routing/config `--fix` paths
 
-8. **`before_tool_call` hook for auto-checkpoint** — fires before tool calls, reads context %, triggers `persona_checkpoint` at threshold.
+Doctor and route_check both have `--fix` shaped for the workspace-only case. Mutating openclaw.json is the next step but should wait for Phase 7's `operator.admin` scope gating per DESIGN-V3 § Audit Update.
 
-### Pattern carryover from Phase 5
+## What Phase 7 needs to deliver
+
+Per DESIGN-V3.md § Audit Update + the Phase 7 row:
+
+1. **CLI registrar** — `api.registerCli(...)` exposing `openclaw persona <subcommand>` for every tool. JSON mode (`--json`) for scripting. Reuse the same library code paths as the tools (the libs under `lib/` already export pure functions).
+
+2. **Operator scope gating** — `api.session.controls.registerSessionAction` for destructive paths. `requiredScopes: ["operator.admin"]` on routing/config `--fix`, `persona_switch_soul`, `persona_blend_souls`. Per the audit update at DESIGN-V3.md § "Operator scope gating".
+
+3. **Scoped slash commands** — promote `/persona-setup` to the full `/persona <subcommand>` family. Each command has `requiredScopes`.
+
+4. **Once scope gating is in place** — re-enable the routing/config `--fix` paths that alpha.5 deliberately skipped. Tests already verify the skip message references "Phase 7" + "operator.admin" — that wiring is ready to flip on.
+
+### Pattern carryover from Phases 5–6
 
 - New hooks register via `api.registerHook(name, handler, { name: "ai-persona-os.<id>" })`. The `opts.name` is REQUIRED — loader throws "hook registration missing name" otherwise.
 - Cast typed contribution handlers through `unknown` to satisfy `InternalHookHandler`. See `hooks/heartbeat_prompt_contribution.ts:registerHeartbeatHook` for the documented cast.
-- Every hook gets a paired `registerRuntimeLifecycle`.
+- Every register* gets a paired `registerRuntimeLifecycle`.
+- Atomic writes through `lib/fs-write.ts:atomicWriteFile` / `atomicAppendFile`. Backup-before-overwrite through `backupFile(workspace, srcAbs, prefix, now?)` — drops the prior version into `memory/archive/<prefix>-<ISO>.md`.
+- Soul gallery lookup: `lib/soul-ops.ts:findSoul(templatesRoot, filename)` — tries `prebuilt-souls/` then `iconic-characters/`. Phase 7 CLI commands should reuse this.
 
-### Things NOT to do in Phase 6
+### Things NOT to do in Phase 7
 
-- ❌ Don't touch the v2.0 skill at `~/.openclaw/workspace/skills/ai-persona-os/` directly — let the migration runner prompt the user.
-- ❌ Don't add CLI registration — Phase 7.
+- ❌ Don't touch the v2.0 skill — same instruction as always until the maintainer lifts it.
+- ❌ Don't add the `before_tool_call` auto-checkpoint hook — that's a separate, focused session.
+- ❌ Don't ship the migration runner — needs explicit maintainer go-ahead.
 - ❌ Don't try to wire `patchSessionExtension` from the typed SDK surface unless it's been exposed.
-- ❌ Don't add session actions yet (`api.session.controls.registerSessionAction`) unless a tool needs gateway-mediated dispatch — the operator-scope gating per DESIGN is a Phase 7 concern.
 
 ## Patterns established (carry forward)
 
@@ -89,22 +105,24 @@ Per DESIGN-V3.md § Audit Update + the Phase 6 row:
 - **`sessionEntrySlotKey` must be a plain identifier** (camelCase, no dashes/dots) — gateway diag rejected `"ai-persona-os.setup"`, accepted `"aiPersonaOsSetup"`.
 - **Atomic writes** = write to `.persona-setup-tmp` then `fs.rename`. See `lib/setup.ts:atomicWrite`. Any future writer (`persona_checkpoint`, etc.) should do the same.
 
-## Files Phase 6 will likely touch
+## Files Phase 7 will likely touch
 
-- New: `plugin/src/tools/persona_checkpoint.ts`
-- New: `plugin/src/tools/persona_switch_soul.ts`
-- New: `plugin/src/tools/persona_blend_souls.ts`
-- New: `plugin/src/tools/persona_dream.ts`
-- New: `plugin/src/lib/checkpoint.ts` — pure logic for "write a checkpoint NOW" (reuse atomicWrite from setup.ts)
-- New: `plugin/src/lib/soul-blender.ts` — structural merge of two soul markdowns
-- New: `plugin/src/lib/dream-consolidator.ts` — N-day window over memory/*.md
-- New: `plugin/src/migrations/v2_to_v3.ts` + `plugin/src/migrations/index.ts`
-- New: `plugin/src/hooks/before_tool_call.ts` — context-threshold auto-checkpoint
-- Modify: `plugin/src/tools/persona_doctor.ts` — accept `fix: boolean`, dispatch on finding.id
-- Modify: `plugin/src/tools/persona_route_check.ts` — accept `fix: boolean`
-- Modify: `plugin/src/index.ts` — register all the above
-- Modify: `plugin/src/lib/version.ts` — bump to alpha.5
-- Extend: `_phase6-test.sh` — modeled on _phase5-test.sh
+- New: `plugin/src/cli/index.ts` — `registerCli` entry, exposes `openclaw persona <subcommand>`
+- New: `plugin/src/cli/persona_setup.ts`, `persona_status.ts`, `persona_recall.ts`, `persona_route_check.ts`, `persona_doctor.ts`, `persona_checkpoint.ts`, `persona_switch_soul.ts`, `persona_blend_souls.ts`, `persona_dream.ts` — thin commander/yargs wrappers around the existing `lib/` functions. Each adds `--json` mode.
+- New: `plugin/src/actions/*.ts` — session-action registrations for destructive paths, with `requiredScopes: ["operator.admin"]`
+- Modify: `plugin/src/commands/persona_setup_command.ts` — add `requiredScopes` to the existing slash command + register more under the `/persona <verb>` namespace
+- Modify: `plugin/src/tools/persona_doctor.ts` — wire the routing fixers behind the new scope gate
+- Modify: `plugin/src/tools/persona_route_check.ts` — add `fix: boolean`, gate via scope
+- Modify: `plugin/src/lib/version.ts` — bump to alpha.6
+- Extend: `_phase7-test.sh` — CLI invocation tests + scope-gating tests
+
+## Files Phase 6-finish (migration + before_tool_call) will touch
+
+Only when the maintainer says go:
+
+- New: `plugin/src/migrations/v2_to_v3.ts` + `index.ts` (via `api.registerMigrationProvider`)
+- New: `plugin/src/hooks/before_tool_call.ts` — context-threshold auto-checkpoint. Reuse `lib/checkpoint.ts:writeCheckpoint`.
+- Modify: `plugin/src/index.ts` — register both
 
 ---
 

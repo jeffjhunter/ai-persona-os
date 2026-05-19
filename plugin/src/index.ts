@@ -26,6 +26,10 @@ import { registerPersonaRecall } from "./tools/persona_recall.js";
 import { registerPersonaRouteCheck } from "./tools/persona_route_check.js";
 import { registerPersonaDoctor } from "./tools/persona_doctor.js";
 import { registerPersonaSetup } from "./tools/persona_setup.js";
+import { registerPersonaCheckpoint } from "./tools/persona_checkpoint.js";
+import { registerPersonaSwitchSoul } from "./tools/persona_switch_soul.js";
+import { registerPersonaBlendSouls } from "./tools/persona_blend_souls.js";
+import { registerPersonaDream } from "./tools/persona_dream.js";
 import { registerStatusMeterUi } from "./ui/status_meter.js";
 import { registerSetupWizardUi } from "./ui/setup_wizard.js";
 import { registerSetupExtension } from "./state/setup_extension.js";
@@ -40,7 +44,7 @@ export default definePluginEntry({
     "SOUL.md Maker, memory tools, Discord routing fix, native heartbeat, " +
     "never-forget context. By Jeff J Hunter.",
   register(api) {
-    const toolCount = 6;
+    const toolCount = 10;
     const uiDescriptorCount = 2;
     const commandCount = 1;
     const hookCount = 1;
@@ -55,6 +59,10 @@ export default definePluginEntry({
     registerPersonaRouteCheck(api);
     registerPersonaDoctor(api);
     registerPersonaSetup(api);
+    registerPersonaCheckpoint(api);
+    registerPersonaSwitchSoul(api);
+    registerPersonaBlendSouls(api);
+    registerPersonaDream(api);
 
     // Session state extensions
     registerSetupExtension(api);
