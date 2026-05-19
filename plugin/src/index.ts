@@ -30,6 +30,7 @@ import { registerStatusMeterUi } from "./ui/status_meter.js";
 import { registerSetupWizardUi } from "./ui/setup_wizard.js";
 import { registerSetupExtension } from "./state/setup_extension.js";
 import { registerPersonaSetupCommand } from "./commands/persona_setup_command.js";
+import { registerHeartbeatHook } from "./hooks/heartbeat_prompt_contribution.js";
 
 export default definePluginEntry({
   id: "ai-persona-os",
@@ -42,8 +43,9 @@ export default definePluginEntry({
     const toolCount = 6;
     const uiDescriptorCount = 2;
     const commandCount = 1;
+    const hookCount = 1;
     api.logger.info(
-      `ai-persona-os@${PLUGIN_VERSION} loading — ${toolCount} tool(s), ${uiDescriptorCount} UI descriptor(s), ${commandCount} command(s)`
+      `ai-persona-os@${PLUGIN_VERSION} loading — ${toolCount} tool(s), ${uiDescriptorCount} UI descriptor(s), ${commandCount} command(s), ${hookCount} hook(s)`
     );
 
     // Tools
@@ -59,6 +61,10 @@ export default definePluginEntry({
 
     // Slash commands (bypass the LLM agent)
     registerPersonaSetupCommand(api);
+
+    // Hook handlers (fire on host-emitted events; heartbeat_prompt_contribution
+    // is on a heartbeat turn only — no token cost on user-initiated turns).
+    registerHeartbeatHook(api);
 
     // Control UI descriptors
     registerStatusMeterUi(api);

@@ -4,6 +4,57 @@ All notable changes to the AI Persona OS skill and plugin.
 
 ---
 
+## v3.0.0-alpha.4 — May 19, 2026 — Phase 5 (pre-release)
+
+**Native heartbeat — `heartbeat_prompt_contribution` replaces HEARTBEAT.md**
+
+Phase 5 ships the headline DESIGN-V3 token win: the plugin now contributes its workspace status as a one-line context contribution on heartbeat turns only, replacing v2.0's 30-line HEARTBEAT.md (~600 tokens). Measured **98% token reduction** in compact mode.
+
+### Added — Hook
+
+- **`heartbeat_prompt_contribution`** registered via `api.registerHook(...)`. Fires only on heartbeat turns. Returns `{ appendContext }` carrying the AI Persona OS status line.
+  - **Compact mode** (default): `🟢 ai-persona-os · MEMORY 5% · today 2 · v3.0.0-alpha.4` — ~14 tokens, **98% reduction** vs HEARTBEAT.md baseline.
+  - **Verbose mode**: adds bulleted breakdown + active routing warnings — ~90 tokens, **85% reduction**.
+  - Reads workspace via the shared `inspectWorkspace()` helper; verbose mode also pulls `runRouteCheck()`.
+  - Errors are swallowed and downgraded to a brief breadcrumb so a transient I/O failure can't break heartbeat turns.
+  - Hard 800-char upper bound truncates output defensively.
+  - Paired runtime-lifecycle cleanup.
+
+### Added — Config schema
+
+- `heartbeat.useNativeProtocol` (default `true`) — toggle the hook off.
+- `heartbeat.format` (`"compact" | "verbose"`, default `"compact"`).
+- `heartbeat.memoryLimitKB` (default `4`) — already used by `persona_status` / `persona_doctor`; now also drives the heartbeat's MEMORY % metric.
+
+### Tested
+
+**45/45 assertions passing** across Phase 4 + Phase 5 suites:
+
+- Phase 5 (`_phase5-test.sh`, 15/15): hook registration shape, opts.name presence, compact format under 50-token budget (measured ≈14), DESIGN target ≥90% reduction (measured 98%), verbose format adds routing breakdown, `useNativeProtocol: false` disables the hook, missing-workspace path returns a graceful breadcrumb without throwing, paired lifecycle cleanup, pure `lib/heartbeat-context.ts` formatter.
+- Phase 4 (`_phase4-test.sh`, 30/30): full regression — bootstrap, dryRun, idempotency, force-overwrite, soul override, session extension, slash command modes, persona_status / persona_doctor regressions.
+
+### Verified in OpenClaw 2026.5.18
+
+```
+[plugins] ai-persona-os@3.0.0-alpha.4 loading — 6 tool(s), 2 UI descriptor(s), 1 command(s), 1 hook(s)
+[plugins] ai-persona-os ready
+openclaw plugins doctor: No plugin issues detected.
+```
+
+### SDK quirks documented
+
+- `api.registerHook(...)` is typed with the legacy `InternalHookHandler` shape (`(event) => void`), but the runtime hook-runner routes typed contribution handlers (e.g. `runHeartbeatPromptContribution` merges `PluginHeartbeatPromptContributionResult`). Cast through `unknown` at the registration site — documented inline in `hooks/heartbeat_prompt_contribution.ts`.
+- `api.registerHook(...)` REQUIRES `opts.name` (loader throws "hook registration missing name" otherwise). Use a stable identifier like `ai-persona-os.heartbeat-prompt-contribution`.
+
+### Not in this release (deferred)
+
+- `--fix` modes for doctor / route_check (Phase 6)
+- Write tools: `persona_checkpoint`, `persona_switch_soul`, `persona_blend_souls`, `persona_dream` (Phase 6)
+- CLI parity + operator scopes (Phase 7)
+- Bundled `skills/ai-persona-os/SKILL.md` (Phase 8)
+
+---
+
 ## v3.0.0-alpha.3 — May 19, 2026 — Phase 4 (pre-release)
 
 **Setup wizard — `persona_setup` tool + `/persona-setup` command + session extension + wizard UI card**

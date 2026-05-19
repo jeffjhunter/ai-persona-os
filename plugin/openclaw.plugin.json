@@ -2,7 +2,7 @@
   "id": "ai-persona-os",
   "name": "AI Persona OS",
   "description": "The complete operating system for OpenClaw agents. 24 souls (JARVIS, Thanos, Mary Poppins, Rook...), SOUL.md Maker, memory tools, Discord routing fix, native heartbeat, never-forget context. By Jeff J Hunter.",
-  "version": "3.0.0-alpha.3",
+  "version": "3.0.0-alpha.4",
   "activation": {
     "onStartup": true
   },
@@ -26,6 +26,28 @@
       "workspaceOverride": {
         "type": "string",
         "description": "Optional override for the workspace path. Takes precedence over agents.defaults.workspace and the $OPENCLAW_WORKSPACE env var."
+      },
+      "heartbeat": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "useNativeProtocol": {
+            "type": "boolean",
+            "default": true,
+            "description": "Emit the AI Persona OS status as a heartbeat_prompt_contribution. Replaces v2.0's HEARTBEAT.md (~600 tokens) with a ~30-token deterministic line. Disable to opt out entirely."
+          },
+          "format": {
+            "type": "string",
+            "enum": ["compact", "verbose"],
+            "default": "compact",
+            "description": "Heartbeat contribution format. compact = one line (~30 tokens). verbose = adds bulleted breakdown + routing warnings (~80-130 tokens)."
+          },
+          "memoryLimitKB": {
+            "type": "number",
+            "default": 4,
+            "description": "MEMORY.md size budget in KB. Used by persona_status, persona_doctor, and the heartbeat hook to compute the % indicator."
+          }
+        }
       }
     }
   },
