@@ -50,7 +50,7 @@ HEARTBEAT_OK
 
 **Checkpoint written:**
 ```
-🫀 Feb 5, 2:30 PM PT | anthropic/claude-haiku-4-5 | AI Persona OS v1.9.0
+🫀 Feb 5, 2:30 PM PT | anthropic/claude-haiku-4-5 | AI Persona OS v2.0.0
 
 🟢 Context: 31% — Healthy
 🟡 Memory: Stale — last checkpoint 47m ago

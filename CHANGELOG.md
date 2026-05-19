@@ -4,6 +4,44 @@ All notable changes to the AI Persona OS skill.
 
 ---
 
+## v2.0.0 — May 19, 2026
+
+**SKILL.md restructure — pitch on top, agent instructions below the fold**
+
+> **Note on the version jump from 1.9.0 → 2.0.0:** SemVer would normally make this 1.10.0, but `1.10` reads as `1.1` to most people scanning quickly. This release is also a meaningful presentation rework (every visitor to the ClawHub listing sees a different page now), so the major-version bump signals "this is a real release" and removes the optical ambiguity. No breaking workspace/API changes — agents on v1.x continue to work without modification.
+
+Visitors landing on the ClawHub listing page used to see ~200 lines of Agent Rules + post_install_check + Workspace Detection + Tool Usage Guide before reaching the "Why This Exists" pitch — felt like a security manual. This release reorders SKILL.md so the human-facing pitch is at the top and the AI-facing instructions are clearly delimited below a divider. Same content, different presentation.
+
+### Changed — SKILL.md structure
+
+**New top section** (lines 20-207) is the pitch — what visitors see when they land on the listing:
+- Title + tagline + a one-line AI redirect ("scroll to § Agent Instructions")
+- "Most agents are held together with duct tape" opener
+- **Why This Exists** — Jeff's pitch about why systems beat models
+- **What's Included** — refreshed feature table emphasizing v1.8.0/v1.9.0 additions (memory tools, Discord routing fix, workspace detection, DREAMS.md)
+- **The 24-Soul Gallery** — NEW visual gallery: 11 originals + 13 iconic characters in two tables with emojis and one-liners
+- **The 4-Tier Architecture** — workspace tree diagram
+- **The 8 Operating Rules** — quick-reference table
+- **Success Metrics** — before/after numbers
+- **Quick Start** — install command + "say 'Set up AI Persona OS' in chat"
+- **Who Built This** — Jeff bio + Connect links
+
+**New `# 🔧 Agent Instructions` divider** at line 209 with a loud header: *"Everything above is the human-facing pitch. The operating instructions for the AI agent reading this skill start HERE."*
+
+**Agent-instruction content unchanged below the divider** — Agent Rules (1-11), Workspace Detection, post_install_check, First-Run Setup, In-Chat Commands, Channel Routing, Tool Usage Guide, Ambient Monitoring, Never-Forget Protocol, Security, Proactive Patterns, Learning System, Growth Loops, Session Management, Heartbeat Protocol v2.
+
+### Why this matters
+
+ClawHub renders SKILL.md as the landing page. With the old order, visitors saw 200 lines of "for the AI reading this" content before the pitch. The detail page felt like a security disclaimer instead of a product page. The reordering doesn't change a single instruction — agents still read top-to-bottom, the AI redirect at line 22 tells them exactly where their section starts.
+
+### Compatibility
+
+- **Zero behavior change for agents.** Modern LLMs read entire SKILL.md files and synthesize regardless of section order. The Agent Rules are still numbered 1-11, still bold, still flagged with ⛔.
+- **Zero workspace change.** No files moved, no templates touched.
+- **Listing description** is set by ClawHub at initial publish and doesn't auto-update from frontmatter on version bumps. Update the description manually via ClawHub's listing settings if you want the card to refresh.
+
+---
+
 ## v1.9.0 — May 19, 2026
 
 **Workspace path detection — works with any OpenClaw 5.x install**

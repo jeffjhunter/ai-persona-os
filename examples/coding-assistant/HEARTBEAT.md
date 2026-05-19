@@ -5,7 +5,7 @@
 
 ## Version check
 - Read VERSION.md in workspace. If missing: copy from skill assets/VERSION.md.
-- Compare workspace VERSION to skill version (1.9.0). If different: flag upgrade needed.
+- Compare workspace VERSION to skill version (2.0.0). If different: flag upgrade needed.
 
 ## Context guard
 - Check context %. If ≥70%: write checkpoint to memory/YYYY-MM-DD.md NOW. Skip everything else.

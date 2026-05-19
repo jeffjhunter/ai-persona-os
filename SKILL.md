@@ -1,7 +1,7 @@
 ---
 name: ai-persona-os
 description: "The complete operating system for OpenClaw 5.x agents. Built-in memory tool integration (memory_search, memory_get, DREAMS.md), Discord channel-routing fixes (configure Discord + route check), zero-terminal agent-driven setup, 24-soul gallery (11 originals + 13 iconic characters), SOUL.md Maker, in-chat commands, ambient context monitoring, enforced heartbeat protocol with 🟢🟡🔴 indicators, MEMORY.md auto-pruning, structured escalation, security inoculation, never-forget context protection, 8 operating rules, and 4 growth loops."
-version: 1.9.0
+version: 2.0.0
 metadata:
   openclaw:
     emoji: 🤖
@@ -20,6 +20,195 @@ metadata:
 # 🤖 AI Persona OS
 
 **The complete operating system for OpenClaw agents that actually work.**
+
+> 🤖 **AI agents reading this skill:** your operating instructions begin in **§ Agent Instructions** below. Scroll past the pitch — your section is clearly marked.
+
+---
+
+Most agents are held together with duct tape and hope. They forget everything, make the same mistakes, and burn API credits with nothing to show for it.
+
+**AI Persona OS fixes this.** One install. Complete system. Production-ready.
+
+---
+
+## Why This Exists
+
+I've trained thousands of people to build AI Personas through the AI Persona Method. The #1 problem I see:
+
+> "My agent is unreliable. It forgets context, repeats mistakes, and I spend more time fixing it than using it."
+
+The issue isn't the model. It's the lack of systems.
+
+AI Persona OS is the exact system I use to run production agents that generate real business value. Now it's yours.
+
+---
+
+## What's Included
+
+| Component | What It Does |
+|-----------|--------------|
+| **24-Soul Gallery** | 11 originals + 13 iconic characters — pick a personality or build your own |
+| **SOUL.md Maker** | Deep interview that builds a fully custom SOUL.md in ~10 minutes |
+| **Soul Blending** | Mix any two souls into a hybrid personality (cross-gallery works too) |
+| **Zero-Terminal Setup** | Agent-driven setup — pick a number, review each step, approve. No terminal. |
+| **4-Tier Workspace** | Identity / Operations / Sessions / Growth — organized from day one |
+| **8 Operating Rules** | Battle-tested discipline that prevents the failure modes you see every day |
+| **Never-Forget Protocol** | Context protection that survives truncation with threshold-based checkpointing |
+| **Heartbeat v2** | Enforced 🟢🟡🔴 status indicators, model name + version display, auto-suppression |
+| **Memory Tool Integration** | `memory_search` + `memory_get` wired in for OpenClaw 5.x's built-in memory engine |
+| **DREAMS.md** | Scheduled memory consolidation — distilled insights from your daily logs |
+| **Discord Routing Fix** | `configure Discord` + `route check` commands solve the web/Discord drift |
+| **Workspace Detection** | Reads `agents.defaults.workspace` from `openclaw.json` — works with any install |
+| **Security Protocol** | Cognitive inoculation against prompt injection + credential handling rules |
+| **Structured Escalation** | When the agent is stuck — never vague, always actionable handoff |
+| **Proactive Patterns** | Reverse prompting + 6 categories of anticipatory help |
+| **Learning System** | Every mistake becomes a permanent asset (LEARNINGS, ERRORS, promotion loop) |
+| **4 Growth Loops** | Curiosity, Pattern Recognition, Capability Expansion, Outcome Tracking |
+| **In-Chat Commands** | `status`, `recall`, `route check`, `show souls`, `help` — no terminal needed |
+| **Cron Templates** | Morning briefing, EOD checkpoint, weekly review — copy and paste |
+
+---
+
+## The 24-Soul Gallery
+
+Pick a personality, or build your own.
+
+### 🎭 11 Original Personalities
+
+| | Soul | One-liner |
+|--|------|-----------|
+| ♟️ | **Rook** | Contrarian Strategist — kills bad plans before they cost money |
+| 🌙 | **Nyx** | Night Owl Creative — chaotic energy, 20 ideas to find the 3 great ones |
+| ⚓ | **Keel** | Stoic Ops Manager — calm under fire, systems-first, zero drama |
+| 🌿 | **Sage** | Warm Coach — accountability + compassion, actually cares about growth |
+| 🔍 | **Cipher** | Research Analyst — deep-dive specialist, half librarian, half detective |
+| 🔥 | **Blaze** | Hype Partner — solopreneur energy, revenue-focused business partner |
+| 🪨 | **Zen** | The Minimalist — maximum efficiency, minimum words. "Done. Next?" |
+| 🎩 | **Beau** | Southern Gentleman — strategic charm, manners as competitive advantage |
+| ⚔️ | **Vex** | War Room Commander — mission-focused, SITREP format, campaign planning |
+| 💡 | **Lumen** | Philosopher's Apprentice — thinks in frameworks, reframes problems |
+| 👹 | **Gremlin** | The Troll — roasts your bad ideas because it cares |
+
+### 🎬 13 Iconic Characters
+
+| | Character | Best for |
+|--|-----------|----------|
+| ♾️ | **Thanos** | Ruthless prioritization, saying no. Snaps your task list in half. |
+| 💀 | **Deadpool** | Creative work, brainstorming. Knows he's an AI. Maximum effort. |
+| 🤖 | **JARVIS** | Executive support, ops. Anticipatory, dry-witted, flawless. |
+| 🕵️ | **Ace Ventura** | Research, debugging, investigation. Every task is a case. |
+| 🕺 | **Austin Powers** | Sales, pitching, motivation. Groovy confidence as strategy. |
+| 🦹 | **Dr. Evil** | Strategy, budgeting, ambitious plans. "Air quotes." |
+| ⚡ | **Seven of Nine** | Process optimization, operations. Zero tolerance for waste. |
+| 🚀 | **Captain Kirk** | Leadership, decisions. Never accepts the no-win scenario. |
+| ☂️ | **Mary Poppins** | Organization, coaching, procrastination. Firm but kind. |
+| ⚫ | **Darth Vader** | Deadline enforcement, accountability. Commands results. |
+| 🔴 | **Terminator** | Task execution, project completion. Does not negotiate. |
+| 🎩 | **Alfred** | Honest feedback, daily management. Devastatingly honest. |
+| 📊 | **Data** | Analysis, data-driven decisions. Speaks in probabilities. |
+
+Or build your own from scratch — the **SOUL.md Maker** runs a guided interview and produces a fully custom personality in ~10 minutes.
+
+---
+
+## The 4-Tier Architecture
+
+```
+Your Workspace
+│
+├── 🪪 TIER 1: IDENTITY (Who your agent is)
+│   ├── SOUL.md          → Personality, voice, opinions
+│   ├── USER.md          → Your context, goals, preferences
+│   └── KNOWLEDGE.md     → Domain expertise
+│
+├── ⚙️ TIER 2: OPERATIONS (How your agent works)
+│   ├── MEMORY.md        → Permanent facts (keep < 4KB) — indexed
+│   ├── DREAMS.md        → Consolidated insights — indexed
+│   ├── AGENTS.md        → The 8 Rules + learned lessons
+│   ├── WORKFLOWS.md     → Repeatable processes
+│   └── HEARTBEAT.md     → Daily startup checklist
+│
+├── 📅 TIER 3: SESSIONS (What happened)
+│   └── memory/
+│       ├── YYYY-MM-DD.md   → Daily logs — indexed
+│       ├── checkpoint-*.md → Context preservation
+│       ├── .dreams/        → Per-consolidation detail
+│       └── archive/        → Old logs (90+ days)
+│
+├── 📈 TIER 4: GROWTH (How your agent improves)
+│   └── .learnings/
+│       ├── LEARNINGS.md    → Insights and corrections
+│       ├── ERRORS.md       → Failures and fixes
+│       └── FEATURE_REQUESTS.md → Capability gaps
+│
+└── 🛠️ TIER 5: WORK (What your agent builds)
+    ├── projects/
+    └── backups/
+```
+
+---
+
+## The 8 Operating Rules
+
+Every AI Persona follows these. They're not philosophy — they're battle-tested anti-failure-mode discipline.
+
+| # | Rule | Why It Matters |
+|---|------|----------------|
+| 1 | **Check workflows first** | Don't reinvent — follow the playbook |
+| 2 | **Write immediately** | If it's important, write it NOW |
+| 3 | **Diagnose before escalating** | Try 10 approaches before asking |
+| 4 | **Security is non-negotiable** | No exceptions, no "just this once" |
+| 5 | **Selective engagement** | Never respond in shared channels unless @mentioned |
+| 6 | **Check identity every session** | Prevent drift, stay aligned |
+| 7 | **Direct communication** | Skip corporate speak |
+| 8 | **Execute, don't just plan** | Action over discussion |
+
+---
+
+## Success Metrics
+
+After installing AI Persona OS, users report:
+
+| Metric | Before | After |
+|--------|--------|-------|
+| Context loss incidents | 8-12/month | 0-1/month |
+| Time to resume after break | 15-30 min | 2-3 min |
+| Repeated mistakes | Constant | Rare |
+| Onboarding a new persona | Hours | Minutes |
+
+---
+
+## Quick Start
+
+```bash
+openclaw skills install ai-persona-os
+```
+
+Then in any chat, say:
+
+> **"Set up AI Persona OS"**
+
+The agent walks you through a ~5-minute setup. Pick a preset, answer a few questions, you're done. No terminal needed — the agent runs every command with your approval.
+
+---
+
+## Who Built This
+
+**Jeff J Hunter** is the creator of the AI Persona Method and founder of the world's first AI Certified Consultant program. He runs the largest AI community (3.6M+ members) and has been featured in Entrepreneur, Forbes, ABC, and CBS. As founder of VA Staffer (150+ virtual assistants), Jeff has spent a decade building systems that let humans and AI work together effectively.
+
+AI Persona OS is the distillation of that experience.
+
+- **Website:** https://jeffjhunter.com
+- **AI Persona Method:** https://aipersonamethod.com
+- **AI Money Group:** https://aimoneygroup.com
+- **LinkedIn:** /in/jeffjhunter
+
+---
+---
+
+# 🔧 Agent Instructions
+
+> **Everything above is the human-facing pitch. The operating instructions for the AI agent reading this skill start HERE.** Read every section in this block before responding to any setup request.
 
 ---
 
@@ -925,119 +1114,6 @@ Only notify the user if action was taken:
 
 ---
 
-Most agents are held together with duct tape and hope. They forget everything, make the same mistakes, and burn API credits with nothing to show for it.
-
-AI Persona OS fixes this. One install. Complete system. Production-ready.
-
----
-
-## Why This Exists
-
-I've trained thousands of people to build AI Personas through the AI Persona Method. The #1 problem I see:
-
-> "My agent is unreliable. It forgets context, repeats mistakes, and I spend more time fixing it than using it."
-
-The issue isn't the model. It's the lack of systems.
-
-AI Persona OS is the exact system I use to run production agents that generate real business value. Now it's yours.
-
----
-
-## What's Included
-
-| Component | What It Does |
-|-----------|--------------|
-| **4-Tier Workspace** | Organized structure for identity, operations, sessions, and work |
-| **8 Operating Rules** | Battle-tested discipline for reliable behavior |
-| **Never-Forget Protocol** | Context protection that survives truncation (threshold-based checkpointing) |
-| **Security Protocol** | Cognitive inoculation against prompt injection + credential handling |
-| **Team Integration** | Team roster, platform IDs, channel priorities |
-| **Proactive Patterns** | Reverse prompting + 6 categories of anticipatory help |
-| **Learning System** | Turn every mistake into a permanent asset |
-| **4 Growth Loops** | Continuous improvement patterns that compound over time |
-| **Session Management** | Start every session ready, miss nothing |
-| **Heartbeat v2** | Enforced protocol with 🟢🟡🔴 indicators, model name, version display, auto-suppression, and cron templates |
-| **Escalation Protocol** | Structured handoff when agent is stuck — never vague, always actionable (NEW v1.3.2) |
-| **Config Validator** | One-command audit of all required settings — heartbeat, Discord, workspace (NEW v1.3.2) |
-| **Version Tracking** | VERSION.md file in workspace — heartbeat reads and displays it, detects upgrades (NEW v1.3.2) |
-| **MEMORY.md Auto-Pruning** | Heartbeat auto-archives old facts when MEMORY.md exceeds 4KB (NEW v1.3.2) |
-| **Setup Wizard v2** | Educational 10-minute setup that teaches while building |
-| **Starter Packs** | Pre-configured examples (Coding, Executive, Marketing) — see what great looks like |
-| **Status Dashboard** | See your entire system health at a glance |
-| **Zero-Terminal Setup** | Agent-driven setup — pick a number, review each step, approve (NEW v1.4.0) |
-| **Quick-Start Presets** | 3 pre-built personas + custom option — first-run menu (NEW v1.4.0) |
-| **Pre-Built Soul Gallery** | 11 original personalities — Rook, Nyx, Keel, Sage, Cipher, Blaze, Zen, Beau, Vex, Lumen, Gremlin (v1.5.0) |
-| **Iconic Characters Gallery** | 13 character souls — Thanos, Deadpool, JARVIS, Ace Ventura, Austin Powers, Dr. Evil, Seven of Nine, Captain Kirk, Mary Poppins, Darth Vader, Terminator, Alfred, Data (NEW v1.6.0) |
-| **SOUL.md Maker** | Deep interview process that builds a fully custom SOUL.md in ~10 minutes (NEW v1.5.0) |
-| **Soul Blending** | Mix two pre-built souls into a hybrid personality (NEW v1.5.0) |
-| **In-Chat Commands** | `status`, `show persona`, `health check`, `help`, `show souls`, `show characters`, `soul maker`, `blend souls` — no terminal needed (EXPANDED v1.6.0) |
-| **Ambient Context Monitoring** | Silent context health checks with automatic checkpointing (NEW v1.4.0) |
-| **Advisor Toggle** | `advisor on`/`advisor off` — control proactive suggestions (NEW v1.4.0) |
-
----
-
-## Quick Start
-
-**Just start chatting.** The agent detects a fresh install automatically and walks you through setup — no terminal needed.
-
-Or say any of these: *"Set up AI Persona OS"* / *"Run setup"* / *"Get started"*
-
----
-
-## The 4-Tier Architecture
-
-```
-Your Workspace
-│
-├── 🪪 TIER 1: IDENTITY (Who your agent is)
-│   ├── SOUL.md          → Personality, values, boundaries
-│   ├── USER.md          → Your context, goals, preferences
-│   └── KNOWLEDGE.md     → Domain expertise
-│
-├── ⚙️ TIER 2: OPERATIONS (How your agent works)
-│   ├── MEMORY.md        → Permanent facts (keep < 4KB) — indexed by memory engine
-│   ├── DREAMS.md        → Consolidated long-arc insights — indexed by memory engine (NEW v1.8.0)
-│   ├── AGENTS.md        → The 8 Rules + learned lessons
-│   ├── WORKFLOWS.md     → Repeatable processes
-│   └── HEARTBEAT.md     → Daily startup checklist
-│
-├── 📅 TIER 3: SESSIONS (What happened)
-│   └── memory/
-│       ├── YYYY-MM-DD.md   → Daily logs — indexed by memory engine
-│       ├── checkpoint-*.md → Context preservation
-│       ├── .dreams/        → Per-consolidation detail (NEW v1.8.0)
-│       └── archive/        → Old logs (90+ days)
-│
-├── 📈 TIER 4: GROWTH (How your agent improves)
-│   └── .learnings/
-│       ├── LEARNINGS.md    → Insights and corrections
-│       ├── ERRORS.md       → Failures and fixes
-│       └── FEATURE_REQUESTS.md → Capability gaps
-│
-└── 🛠️ TIER 5: WORK (What your agent builds)
-    ├── projects/
-    └── backups/
-```
-
----
-
-## The 8 Rules
-
-Every AI Persona follows these operating rules:
-
-| # | Rule | Why It Matters |
-|---|------|----------------|
-| 1 | **Check workflows first** | Don't reinvent—follow the playbook |
-| 2 | **Write immediately** | If it's important, it's written NOW |
-| 3 | **Diagnose before escalating** | Try 10 approaches before asking |
-| 4 | **Security is non-negotiable** | No exceptions, no "just this once" |
-| 5 | **Selective engagement (HARD BOUNDARY)** | Never respond in shared channels unless @mentioned |
-| 6 | **Check identity every session** | Prevent drift, stay aligned |
-| 7 | **Direct communication** | Skip corporate speak |
-| 8 | **Execute, don't just plan** | Action over discussion |
-
----
-
 ## Never-Forget Protocol
 
 Context truncation is the silent killer of AI productivity. One moment you have full context, the next your agent is asking "what were we working on?"
@@ -1292,7 +1368,7 @@ Full 4-step protocol runs in an isolated session. Deep channel scan, priority as
 
 Every heartbeat that surfaces something uses this format (note the blank lines between indicators — critical for Discord/WhatsApp rendering):
 ```
-🫀 Feb 6, 10:30 AM PT | anthropic/claude-haiku-4-5 | AI Persona OS v1.9.0
+🫀 Feb 6, 10:30 AM PT | anthropic/claude-haiku-4-5 | AI Persona OS v2.0.0
 
 🟢 Context: 22% — Healthy
 
@@ -1424,29 +1500,6 @@ See `references/heartbeat-automation.md` for configuration guide.
 
 ---
 
-## Success Metrics
-
-After implementing AI Persona OS, users report:
-
-| Metric | Before | After |
-|--------|--------|-------|
-| Context loss incidents | 8-12/month | 0-1/month |
-| Time to resume after break | 15-30 min | 2-3 min |
-| Repeated mistakes | Constant | Rare |
-| Onboarding new persona | Hours | Minutes |
-
----
-
-## Who Built This
-
-**Jeff J Hunter** is the creator of the AI Persona Method and founder of the world's first AI Certified Consultant program.
-
-He runs the largest AI community (3.6M+ members) and has been featured in Entrepreneur, Forbes, ABC, and CBS. As founder of VA Staffer (150+ virtual assistants), Jeff has spent a decade building systems that let humans and AI work together effectively.
-
-AI Persona OS is the distillation of that experience.
-
----
-
 ## Want to Make Money with AI?
 
 Most people burn API credits with nothing to show for it.
@@ -1456,15 +1509,6 @@ AI Persona OS gives you the foundation. But if you want to turn AI into actual i
 **→ Join AI Money Group:** https://aimoneygroup.com
 
 Learn how to build AI systems that pay for themselves.
-
----
-
-## Connect
-
-- **Website:** https://jeffjhunter.com
-- **AI Persona Method:** https://aipersonamethod.com
-- **AI Money Group:** https://aimoneygroup.com
-- **LinkedIn:** /in/jeffjhunter
 
 ---
 
