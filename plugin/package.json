@@ -1,6 +1,6 @@
 {
   "name": "@jeffjhunter/openclaw-ai-persona-os",
-  "version": "3.0.0-alpha.2",
+  "version": "3.0.0-alpha.3",
   "description": "The complete operating system for OpenClaw agents, rebuilt as a plugin. 24 souls, SOUL.md Maker, memory tools, Discord routing fix, native heartbeat, never-forget context, structured escalation. By Jeff J Hunter.",
   "homepage": "https://github.com/jeffjhunter/ai-persona-os",
   "repository": {

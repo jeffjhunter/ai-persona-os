@@ -1,13 +1,17 @@
 /**
  * AI Persona OS — OpenClaw plugin entry.
  *
- * v3.0.0-alpha.1 — Phase 2 (scaffold). Registers a single tool
- * (persona_workspace_resolve) and pairs every register* with a runtime
- * lifecycle cleanup entry per the host-hooks recipe doc (#18 + § Cleanup matrix).
+ * v3.0.0-alpha.3 — Phase 4 (setup wizard). Registers six tools, two Control
+ * UI descriptors, a session extension for setup progress, and the
+ * `/persona-setup` slash command. Every register* is paired with a runtime
+ * lifecycle cleanup per the host-hooks recipe doc § Cleanup matrix.
  *
- * Future phases (per DESIGN-V3.md):
- *   - Phase 3: persona_status, persona_recall, persona_route_check (read-only)
- *   - Phase 4: persona_setup as Recipe D (session extension + commands + UI card)
+ * Phase history (per DESIGN-V3.md):
+ *   - Phase 2: scaffold + persona_workspace_resolve
+ *   - Phase 3: persona_status, persona_recall, persona_route_check,
+ *              persona_doctor + status-meter UI descriptor
+ *   - Phase 4: persona_setup + setup-wizard UI descriptor + setup session
+ *              extension + /persona-setup command (this release)
  *   - Phase 5: heartbeat_prompt_contribution replaces HEARTBEAT.md
  *   - Phase 6: persona_checkpoint, switch_soul, blend_souls, dream
  *   - Phase 7: scoped slash commands + CLI parity
@@ -21,7 +25,11 @@ import { registerPersonaStatus } from "./tools/persona_status.js";
 import { registerPersonaRecall } from "./tools/persona_recall.js";
 import { registerPersonaRouteCheck } from "./tools/persona_route_check.js";
 import { registerPersonaDoctor } from "./tools/persona_doctor.js";
+import { registerPersonaSetup } from "./tools/persona_setup.js";
 import { registerStatusMeterUi } from "./ui/status_meter.js";
+import { registerSetupWizardUi } from "./ui/setup_wizard.js";
+import { registerSetupExtension } from "./state/setup_extension.js";
+import { registerPersonaSetupCommand } from "./commands/persona_setup_command.js";
 
 export default definePluginEntry({
   id: "ai-persona-os",
@@ -31,10 +39,11 @@ export default definePluginEntry({
     "SOUL.md Maker, memory tools, Discord routing fix, native heartbeat, " +
     "never-forget context. By Jeff J Hunter.",
   register(api) {
-    const toolCount = 5;
-    const uiDescriptorCount = 1;
+    const toolCount = 6;
+    const uiDescriptorCount = 2;
+    const commandCount = 1;
     api.logger.info(
-      `ai-persona-os@${PLUGIN_VERSION} loading — registering ${toolCount} tool(s) + ${uiDescriptorCount} UI descriptor(s)`
+      `ai-persona-os@${PLUGIN_VERSION} loading — ${toolCount} tool(s), ${uiDescriptorCount} UI descriptor(s), ${commandCount} command(s)`
     );
 
     // Tools
@@ -43,23 +52,30 @@ export default definePluginEntry({
     registerPersonaRecall(api);
     registerPersonaRouteCheck(api);
     registerPersonaDoctor(api);
+    registerPersonaSetup(api);
+
+    // Session state extensions
+    registerSetupExtension(api);
+
+    // Slash commands (bypass the LLM agent)
+    registerPersonaSetupCommand(api);
 
     // Control UI descriptors
     registerStatusMeterUi(api);
+    registerSetupWizardUi(api);
 
-    // Lifecycle cleanup — paired with every register* call per the
-    // host-hooks recipe doc § Cleanup matrix. For alpha.1 there's nothing
-    // to clean up yet (no timers, sockets, watchers, or external clients).
-    // The hook exists so future register* additions slot into the same
-    // discipline pattern.
+    // Catch-all lifecycle for the plugin-level "tear down anything that
+    // doesn't belong to a more specific register*" path. Per-feature
+    // cleanups live alongside their register* calls.
     api.lifecycle.registerRuntimeLifecycle({
       id: "ai-persona-os.lifecycle",
+      description: "Catch-all cleanup for the AI Persona OS plugin.",
       cleanup: async ({ reason }) => {
         api.logger.info(`ai-persona-os cleanup reason=${reason}`);
-        // No-op for alpha.1. Future cleanup:
-        //   - clear any in-flight dream-consolidation jobs
-        //   - close any heartbeat-emission timers
-        //   - flush pending event subscriptions
+        // Per-feature teardown lives next to each register*:
+        //   - state/setup_extension.ts (cache clear)
+        //   - ui/status_meter.ts (descriptor cleanup)
+        //   - ui/setup_wizard.ts (descriptor cleanup)
       },
     });
 

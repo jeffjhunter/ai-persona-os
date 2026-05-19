@@ -1,10 +1,87 @@
 # AI Persona OS v3.0 — Session Checkpoint
 
-> **For the next Claude Code session.** Read this top-to-bottom before doing anything. It captures exact paths, environment quirks, what's already working, gotchas hit, and what Phase 3 needs to deliver.
+> **For the next Claude Code session.** Read this top-to-bottom before doing anything. It captures exact paths, environment quirks, what's already working, gotchas hit, and what the next phase needs to deliver.
 
-**Last updated:** 2026-05-19, end of Phase 2
-**Author of this checkpoint:** Claude (Sonnet 4.5)
-**Next phase:** Phase 3 — read-only tools + first Control UI descriptor
+**Last updated:** 2026-05-19, end of Phase 4
+**Author of this checkpoint:** Claude (Opus 4.7)
+**Next phase:** Phase 5 — hooks + native heartbeat (`heartbeat_prompt_contribution` replaces HEARTBEAT.md)
+
+## Status snapshot
+
+| Phase | Status | Release |
+|-------|--------|---------|
+| 1. Research + design | ✅ done | DESIGN-V3.md committed |
+| 2. Scaffold | ✅ done | v3.0.0-alpha.1 |
+| 3. Read-only tools + first UI | ✅ done | v3.0.0-alpha.2 |
+| 4. Setup wizard (this checkpoint) | ✅ done | v3.0.0-alpha.3 |
+| 5. Hooks + native heartbeat | ⏳ next | — |
+| 6. Write tools + migrations | — | — |
+| 7. CLI + operator scopes | — | — |
+| 8. Tests + docs + ship | — | — |
+
+**What's loaded in the user's gateway right now:**
+```
+[plugins] ai-persona-os@3.0.0-alpha.3 loading — 6 tool(s), 2 UI descriptor(s), 1 command(s)
+[plugins] ai-persona-os ready
+openclaw plugins doctor: No plugin issues detected.
+```
+
+Six tools: `persona_workspace_resolve`, `persona_status`, `persona_recall`, `persona_route_check`, `persona_doctor`, `persona_setup`. Two UI descriptors: `ai-persona-os.status-meter` (header meter), `ai-persona-os.setup-wizard` (wizard card). One slash command: `/persona-setup`. One session extension namespace: `setup`.
+
+## Test infrastructure (use these — they work)
+
+Two test scripts at `C:\Users\heroi\Claude Code\AI Persona OS\`:
+
+- **`_smoke-test.sh`** — registers a fake plugin API, loads the built plugin, exercises every tool against the user's real workspace. Good for "does the plugin still load?" after a change.
+- **`_phase4-test.sh`** — 30 assertions covering `persona_setup` against throwaway workspaces under `/tmp/persona-test-ws-*`. Tests dryRun, idempotency, force-overwrite, soul override, error paths, session extension state, slash command parsing, regression-against-persona_status. **30/30 passing as of alpha.3 ship.**
+
+Both run via:
+```bash
+wsl -d Ubuntu-24.04 -- bash -lc 'cp "/mnt/c/Users/heroi/Claude Code/AI Persona OS/<script>.sh" ~/<script>.sh && chmod +x ~/<script>.sh && ~/<script>.sh'
+```
+
+Add new tests by extending `_phase4-test.sh` — its harness (fake API, kvp parser, ok()/bad() helpers) is reusable.
+
+## What Phase 5 needs to deliver
+
+Per DESIGN-V3.md § Audit Update + the Phase 5 row:
+
+1. **`heartbeat_prompt_contribution` hook** — register via `api.on("heartbeat_prompt_contribution", ...)`. Plugin emits the 🟢🟡🔴 status line ONLY on heartbeat turns. Direct replacement for the 30-line HEARTBEAT.md. Reuse `inspectWorkspace()` from `lib/workspace-status.ts` — it already returns everything we'd want in the contribution.
+
+2. **`agent_turn_prepare` hook** (optional, defer if unclear) — inject "workspace=X, soul=Y" context on every turn. Could replace SKILL.md preamble. Lower priority than heartbeat.
+
+3. **Lifecycle event subscriptions** — `api.agent.events.registerAgentEventSubscription({ streams: ["lifecycle"] })` to listen for run-end events. Foundation for the auto-checkpoint logic that lands in Phase 6.
+
+4. **Per-fire token-cost measurement** — DESIGN target is "≥90% reduction vs HEARTBEAT.md". Worth a back-of-envelope measurement before declaring success — count tokens in v2.0's HEARTBEAT.md (~30 lines, ~600-800 tokens) vs the Phase 5 hook output (one line, ~30 tokens).
+
+5. **Update existing `status-meter` UI descriptor's source** — once a real session extension publishes live data, swap the descriptor's declared shape to match. Or add a new `status` session extension that the heartbeat hook also reads from.
+
+### Things NOT to do in Phase 5
+
+- ❌ Don't touch the v2.0 skill at `~/.openclaw/workspace/skills/ai-persona-os/` — it stays as a fallback.
+- ❌ Don't write `persona_checkpoint` or other write tools — Phase 6.
+- ❌ Don't try to wire `patchSessionExtension` from the typed SDK surface unless it's been exposed — currently isn't.
+- ❌ Don't add CLI registration — Phase 7.
+
+## Patterns established (carry forward)
+
+- **Every `register*` paired with a `registerRuntimeLifecycle`** — see `ui/status_meter.ts`, `ui/setup_wizard.ts`, `state/setup_extension.ts`. Phase 5 hook registrations should follow the same pattern.
+- **Pure libs under `lib/`, thin wrappers in `tools/` / `commands/` / `ui/` / `state/` / `hooks/`** — so unit tests don't need a plugin runtime.
+- **Plugin version centralized in `lib/version.ts`** — bump it once when tagging; the value flows into the log line, doctor's mismatch detector, VERSION.md writes, and the manifest.
+- **`PluginJsonValue` typing** — annotate config-shape objects with `PluginJsonValue` so TS doesn't widen them. `as const` will fail (readonly arrays don't satisfy the recursive union).
+- **`sessionEntrySlotKey` must be a plain identifier** (camelCase, no dashes/dots) — gateway diag rejected `"ai-persona-os.setup"`, accepted `"aiPersonaOsSetup"`.
+- **Atomic writes** = write to `.persona-setup-tmp` then `fs.rename`. See `lib/setup.ts:atomicWrite`. Any future writer (`persona_checkpoint`, etc.) should do the same.
+
+## Files Phase 5 will likely touch
+
+- New: `plugin/src/hooks/heartbeat_prompt_contribution.ts` — the hook handler
+- New: `plugin/src/lib/heartbeat-context.ts` — pure formatter for the contribution string
+- Modify: `plugin/src/index.ts` — `api.on("heartbeat_prompt_contribution", ...)` registration
+- Maybe: `plugin/src/state/status_extension.ts` — `status` namespace if we want live UI data
+- Modify: `plugin/src/ui/status_meter.ts` — refresh hint / live data source
+- Modify: `plugin/src/lib/version.ts` — bump to alpha.4
+
+---
 
 ---
 

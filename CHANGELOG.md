@@ -4,6 +4,82 @@ All notable changes to the AI Persona OS skill and plugin.
 
 ---
 
+## v3.0.0-alpha.3 — May 19, 2026 — Phase 4 (pre-release)
+
+**Setup wizard — `persona_setup` tool + `/persona-setup` command + session extension + wizard UI card**
+
+The plugin can now bootstrap a workspace end-to-end. All four pieces of Recipe D land in this release: the tool, the bypass-the-LLM slash command, the session extension that tracks setup progress, and the second Control UI descriptor.
+
+### Added — Tool
+
+- **`persona_setup`** — bootstraps the workspace from a preset:
+  - **`coding-assistant`** (Axiom), **`executive-assistant`** (Atlas), **`marketing-assistant`** (Spark), or **`custom`** (base templates only — fill SOUL.md yourself).
+  - Optional `name`, `role`, `goal` — appended to `USER.md` as a "Setup Inputs" section.
+  - Optional `soul: <filename>` — overrides `SOUL.md` from `templates/prebuilt-souls/` or `templates/iconic-characters/` (24 souls bundled).
+  - `dryRun: true` returns the file plan without writing.
+  - `force: true` overwrites existing files; otherwise non-destructive (existing files are skipped).
+  - **Atomic writes** (write-tmp + rename) — a crash mid-write can't leave a partial file.
+  - **VERSION.md is always written** to track the plugin version that last touched the workspace.
+  - Creates `memory/` so `persona_status` / `persona_recall` see a real directory.
+
+### Added — Slash command
+
+- **`/persona-setup`** — bypasses the LLM agent.
+  - `/persona-setup` → preset menu with flag documentation
+  - `/persona-setup status` → last-run summary
+  - `/persona-setup souls` → soul gallery listing
+  - `/persona-setup <preset> [key=value ...]` → run setup with parsed key=value flags (supports `name="Quoted Strings"`)
+
+### Added — Session extension
+
+- **`setup` namespace** registered via `api.session.state.registerSessionExtension`. Tracks per-session setup progress (`lastPreset`, `lastInputs`, `lastWritten`, `lastSkipped`, `lastRunAt`, `hasBootstrapped`). Slot key `aiPersonaOsSetup` mirrors the projected value into `SessionEntry` for non-plugin readers. Paired cleanup clears in-process cache on disable/reload.
+
+### Added — Control UI
+
+- **`ai-persona-os.setup-wizard`** descriptor registered via `api.session.controls.registerControlUiDescriptor`. Declares a `wizard-card` with four steps, the preset catalog, and three action chips (`/persona-setup`, `/persona-setup status`, `/persona-setup souls`). Data source declared as the `ai-persona-os/setup` session extension.
+
+### Added — Templates bundled (54 files)
+
+- 12 base templates (SOUL/USER/MEMORY/AGENTS/HEARTBEAT/TOOLS/INDEX/DREAMS/WORKFLOWS/ESCALATION/SECURITY/KNOWLEDGE)
+- 3 starter packs (`coding-assistant`, `executive-assistant`, `marketing-assistant`) — each with personalized SOUL.md + supporting files
+- 11 prebuilt souls (Contrarian Strategist, Night Owl Creative, Stoic Ops Manager, ...)
+- 13 iconic characters (Thanos, Deadpool, JARVIS, Mary Poppins, Darth Vader, Data, ...)
+
+All templates are copies of the v2.0 skill content, unchanged — so a workspace bootstrapped by `persona_setup` matches what `Set up AI Persona OS` would have produced under v2.0.
+
+### Tested
+
+30/30 end-to-end tests passing against throwaway workspaces (`/tmp/persona-test-ws-*`):
+- dryRun preserves disk state, identical plan to real run
+- Atomic writes (verified by file content checks)
+- Idempotency (re-run skips existing files, VERSION.md always re-written)
+- `force: true` overwrites
+- Soul override lookup across both gallery directories
+- Unknown preset / missing soul file return clean error results (no crashes)
+- Session extension records each run; `project()` returns latest state
+- Slash command preset menu / status / souls / full-setup-with-quoted-flags all work
+- `persona_status` after setup correctly reads the new VERSION.md
+- `persona_doctor` reports no version findings when workspace matches plugin
+
+### Internal
+
+- New `lib/setup.ts` — pure bootstrap logic (preset catalog, template loading, plan builder, atomic writes).
+- New `state/setup_extension.ts` — session extension + in-process progress cache, ready to swap for `patchSessionExtension` when that surface is exposed in the typed SDK.
+- New `commands/persona_setup_command.ts` — slash command with quote-aware key=value parser.
+- New `ui/setup_wizard.ts` — Control UI descriptor.
+- `templates/` directory bundled with the plugin; resolved at runtime via `api.rootDir` or `import.meta.url` fallback.
+
+### Not in this release (deferred)
+
+- Heartbeat / `heartbeat_prompt_contribution` (Phase 5)
+- `--fix` modes for doctor / route_check (Phase 6)
+- Write tools: `persona_checkpoint`, `persona_switch_soul`, `persona_blend_souls`, `persona_dream` (Phase 6)
+- CLI parity + operator scopes (Phase 7)
+- Bundled `skills/ai-persona-os/SKILL.md` (Phase 8)
+- Live `patchSessionExtension` wiring (waiting on SDK surface)
+
+---
+
 ## v3.0.0-alpha.2 — May 19, 2026 — Phase 3 (pre-release)
 
 **Read-only plugin tools + first Control UI descriptor**

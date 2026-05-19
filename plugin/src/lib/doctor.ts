@@ -169,7 +169,7 @@ function versionFinding(
         "was bootstrapped by a known AI Persona OS release.",
       hint:
         `Create VERSION.md with a single line like \`${pluginVersion}\` so future ` +
-        "checks can compare. (Auto-creation lands in persona_setup, Phase 4.)",
+        "checks can compare. `persona_setup` writes this automatically.",
     };
   }
   const wsMajor = workspaceVersion.split(".")[0];
