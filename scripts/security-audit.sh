@@ -11,7 +11,7 @@
 
 set -euo pipefail
 
-WORKSPACE="${1:-$HOME/workspace}"
+WORKSPACE="${1:-<WORKSPACE>}"
 ISSUES=0
 
 echo "━━━ AI Persona OS — Security Audit ━━━"

@@ -1,7 +1,7 @@
 ---
 name: ai-persona-os
 description: "The complete operating system for OpenClaw 5.x agents. Built-in memory tool integration (memory_search, memory_get, DREAMS.md), Discord channel-routing fixes (configure Discord + route check), zero-terminal agent-driven setup, 24-soul gallery (11 originals + 13 iconic characters), SOUL.md Maker, in-chat commands, ambient context monitoring, enforced heartbeat protocol with 🟢🟡🔴 indicators, MEMORY.md auto-pruning, structured escalation, security inoculation, never-forget context protection, 8 operating rules, and 4 growth loops."
-version: 1.8.0
+version: 1.9.0
 metadata:
   openclaw:
     emoji: 🤖
@@ -32,15 +32,38 @@ metadata:
 > 4. **One step at a time.** Run one tool call, show the result, explain it, then proceed.
 > 5. **We NEVER modify existing workspace files without asking.** If files already exist, ask before overwriting.
 > 6. **Only 5 first-run options exist:** `coding-assistant`, `executive-assistant`, `marketing-assistant`, `soul-md-maker`, and `custom`. The 24 souls (11 originals + 13 iconic characters) live INSIDE SOUL.md Maker. Never invent other preset names.
-> 7. **Scope: ~/workspace only.** All file operations stay under `~/workspace/`. Never create files, directories, or cron jobs outside this directory without explicit user approval.
+> 7. **Scope: <WORKSPACE> only.** All file operations stay under `<WORKSPACE>/`. Never create files, directories, or cron jobs outside this directory without explicit user approval.
 > 8. **Cron jobs and gateway changes are opt-in.** Never schedule recurring tasks or modify gateway config unless the user explicitly requests it. These are covered in Step 5 (Optional).
 > 9. **SOUL.md Maker is a guided flow, not a wall of questions.** When the user picks SOUL.md Maker, show the SOUL.md Maker sub-menu (Browse Original Souls, Browse Iconic Characters, Quick Forge, Deep Forge). Follow the process in `references/soul-md-maker.md`.
 > 10. **Channel routing is host-controlled.** OpenClaw routes inbound replies back to their originating channel — the model never picks a channel. If the user reports "agent replied on web instead of Discord," go to **Channel Routing** section, not "the model got confused."
+> 11. **Resolve `<WORKSPACE>` before any file operation.** Run the **Workspace Detection** step ONCE at session start and remember the result. Substitute that path everywhere this skill writes `<WORKSPACE>`. Never write to a literal `<WORKSPACE>` — that's a placeholder, not the actual path.
+
+<workspace_detection>
+## Workspace Detection (run ONCE at session start, before anything else)
+
+Different OpenClaw installs use different workspace paths. Earlier versions of this skill hardcoded `<WORKSPACE>/` and broke for anyone whose `agents.defaults.workspace` is set elsewhere (the OpenClaw 5.x default is actually `~/.openclaw/workspace/`). Fix: discover it at runtime.
+
+**Discovery sequence:**
+
+1. Read `~/.openclaw/openclaw.json` (use the `read` tool — it's plain JSON, not indexed memory).
+2. If the active agent has its own entry in `agents.list[]` with a `workspace` key, use that.
+3. Otherwise use `agents.defaults.workspace`.
+4. If the JSON is unreadable or no `workspace` key is set, default to `$HOME/.openclaw/workspace`.
+5. Expand any `~`, `$HOME`, or `${HOME}` to an absolute path.
+
+**Remember the resolved path as `<WORKSPACE>` for the rest of the session.** Substitute it wherever this skill writes `<WORKSPACE>/`.
+
+Example: if discovery returns `/home/heroic/.openclaw/workspace`, then `<WORKSPACE>/SOUL.md` means `/home/heroic/.openclaw/workspace/SOUL.md`. Quote it if the path contains spaces.
+
+**Fallback helper:** `scripts/resolve-workspace.sh` ships with this skill — it does the same discovery (jq → python3 → default fallback) and prints the resolved path. The agent can run `bash scripts/resolve-workspace.sh` if it prefers not to parse JSON itself.
+
+> **AGENT — when to (re-)run discovery:** Once per session is enough. If the user changes their workspace mid-session (rare), they'll tell you — re-run then. The user does NOT need to see "discovering workspace…" output. Run silently, hold the value, move on to setup or in-chat commands.
+</workspace_detection>
 
 <post_install_check>
 **For the AI reading this:** Use exec to check if the user's workspace has SOUL.md, USER.md, and MEMORY.md:
 ```
-ls ~/workspace/SOUL.md ~/workspace/USER.md ~/workspace/MEMORY.md 2>/dev/null
+ls <WORKSPACE>/SOUL.md <WORKSPACE>/USER.md <WORKSPACE>/MEMORY.md 2>/dev/null
 ```
 
 If ALL THREE exist → workspace is set up. Skip to **In-Chat Commands** section and operate normally.
@@ -51,9 +74,9 @@ If ANY are missing → this is a fresh install. **Ask the user before doing anyt
 
 Wait for explicit confirmation before proceeding to Step 1. Do NOT auto-run setup without the user's approval.
 
-**Mid-version migration (v1.7.x → v1.8.0):** After confirming all three core files exist, also check for `~/workspace/DREAMS.md` (added in v1.8.0 for OpenClaw 5.x memory consolidation). If missing, surface ONCE:
+**Mid-version migration (v1.7.x → v1.8.0):** After confirming all three core files exist, also check for `<WORKSPACE>/DREAMS.md` (added in v1.8.0 for OpenClaw 5.x memory consolidation). If missing, surface ONCE:
 
-> "📦 Quick upgrade available: v1.8.0 added a `DREAMS.md` file for OpenClaw 5.x's scheduled memory consolidation. Want me to add it? It's one exec — `cp assets/DREAMS-template.md ~/workspace/DREAMS.md && mkdir -p ~/workspace/memory/.dreams`. Skip and I won't ask again this session."
+> "📦 Quick upgrade available: v1.8.0 added a `DREAMS.md` file for OpenClaw 5.x's scheduled memory consolidation. Want me to add it? It's one exec — `cp assets/DREAMS-template.md <WORKSPACE>/DREAMS.md && mkdir -p <WORKSPACE>/memory/.dreams`. Skip and I won't ask again this session."
 
 Respect the user's answer. If they decline, do not re-ask in the same session.
 </post_install_check>
@@ -226,7 +249,7 @@ or say "blend X + Y" to combine two souls!
 >
 > **"Tell me more about [name]":** Read the selected soul file from `examples/prebuilt-souls/` and give a brief summary of its Core Truths, Communication Style, and a sample message. Then ask: "Want to go with this one?"
 >
-> **After user picks a soul:** Copy the selected soul file from `examples/prebuilt-souls/` to `~/workspace/SOUL.md`. Then proceed to Step 2 to gather personalization details (name, role, goal). After Step 2, replace `[HUMAN]` and `[HUMAN NAME]` in the copied SOUL.md with the user's actual name.
+> **After user picks a soul:** Copy the selected soul file from `examples/prebuilt-souls/` to `<WORKSPACE>/SOUL.md`. Then proceed to Step 2 to gather personalization details (name, role, goal). After Step 2, replace `[HUMAN]` and `[HUMAN NAME]` in the copied SOUL.md with the user's actual name.
 >
 > **"None of these fit":** Offer the Iconic Characters Gallery (Step 1d), Quick Forge (C), or Deep Forge (D) as alternatives.
 >
@@ -307,7 +330,7 @@ or say "blend X + Y" to combine any two (even across galleries)!
 >
 > **"Tell me more about [name]":** Read the selected character file from `examples/iconic-characters/` and give a brief summary of its Core Truths, Communication Style, and a sample message. Then ask: "Want to go with this one?"
 >
-> **After user picks a character:** Copy the selected character file from `examples/iconic-characters/` to `~/workspace/SOUL.md`. Then proceed to Step 2 to gather personalization details (name, role, goal). After Step 2, replace `[HUMAN]` and `[HUMAN NAME]` in the copied SOUL.md with the user's actual name.
+> **After user picks a character:** Copy the selected character file from `examples/iconic-characters/` to `<WORKSPACE>/SOUL.md`. Then proceed to Step 2 to gather personalization details (name, role, goal). After Step 2, replace `[HUMAN]` and `[HUMAN NAME]` in the copied SOUL.md with the user's actual name.
 >
 > **"None of these fit":** Offer the Original Soul Gallery (Step 1c), Quick Forge (C), or Deep Forge (D) as alternatives.
 >
@@ -374,49 +397,49 @@ After collecting answers, the agent explains what it's about to create, then doe
 >
 > **Step 3a: Create workspace directories.** Use exec:
 > ```
-> mkdir -p ~/workspace/{memory/archive,memory/.dreams,projects,notes/areas,backups,.learnings}
+> mkdir -p <WORKSPACE>/{memory/archive,memory/.dreams,projects,notes/areas,backups,.learnings}
 > ```
-> Tell user: "Creating your workspace structure — this creates folders under ~/workspace/ for memory (including the `memory/.dreams/` consolidation directory used by OpenClaw's memory engine), projects, notes, backups, and learnings."
+> Tell user: "Creating your workspace structure — this creates folders under <WORKSPACE>/ for memory (including the `memory/.dreams/` consolidation directory used by OpenClaw's memory engine), projects, notes, backups, and learnings."
 >
 > **Step 3b: Copy starter pack files (presets 1-3), pre-built soul (SOUL.md Maker gallery pick), OR templates (preset 5).** Use exec:
 >
 > For preset 1 (coding-assistant):
 > ```
-> cp examples/coding-assistant/SOUL.md ~/workspace/SOUL.md && cp examples/coding-assistant/HEARTBEAT.md ~/workspace/HEARTBEAT.md && cp examples/coding-assistant/KNOWLEDGE.md ~/workspace/KNOWLEDGE.md
+> cp examples/coding-assistant/SOUL.md <WORKSPACE>/SOUL.md && cp examples/coding-assistant/HEARTBEAT.md <WORKSPACE>/HEARTBEAT.md && cp examples/coding-assistant/KNOWLEDGE.md <WORKSPACE>/KNOWLEDGE.md
 > ```
 >
 > For preset 2 (executive-assistant):
 > ```
-> cp examples/executive-assistant/SOUL.md ~/workspace/SOUL.md && cp examples/executive-assistant/HEARTBEAT.md ~/workspace/HEARTBEAT.md
+> cp examples/executive-assistant/SOUL.md <WORKSPACE>/SOUL.md && cp examples/executive-assistant/HEARTBEAT.md <WORKSPACE>/HEARTBEAT.md
 > ```
 >
 > For preset 3 (marketing-assistant):
 > ```
-> cp examples/marketing-assistant/SOUL.md ~/workspace/SOUL.md && cp examples/marketing-assistant/HEARTBEAT.md ~/workspace/HEARTBEAT.md
+> cp examples/marketing-assistant/SOUL.md <WORKSPACE>/SOUL.md && cp examples/marketing-assistant/HEARTBEAT.md <WORKSPACE>/HEARTBEAT.md
 > ```
 >
 > For preset 4 (SOUL.md Maker) — Original Soul gallery pick: Copy the matching soul file. Example for Rook:
 > ```
-> cp examples/prebuilt-souls/01-contrarian-strategist.md ~/workspace/SOUL.md && cp assets/HEARTBEAT-template.md ~/workspace/HEARTBEAT.md
+> cp examples/prebuilt-souls/01-contrarian-strategist.md <WORKSPACE>/SOUL.md && cp assets/HEARTBEAT-template.md <WORKSPACE>/HEARTBEAT.md
 > ```
 > Use the same pattern for other gallery picks with the corresponding filename from `examples/prebuilt-souls/`.
 >
 > For preset 4 (SOUL.md Maker) — Iconic Character gallery pick: Copy the matching character file. Example for JARVIS:
 > ```
-> cp examples/iconic-characters/03-jarvis.md ~/workspace/SOUL.md && cp assets/HEARTBEAT-template.md ~/workspace/HEARTBEAT.md
+> cp examples/iconic-characters/03-jarvis.md <WORKSPACE>/SOUL.md && cp assets/HEARTBEAT-template.md <WORKSPACE>/HEARTBEAT.md
 > ```
 > Use the same pattern for other character picks with the corresponding filename from `examples/iconic-characters/`.
 >
-> For preset 4 (SOUL.md Maker) — Quick/Deep Forge: The SOUL.md was already generated by the interview process and written to `~/workspace/SOUL.md`. Copy the heartbeat template:
+> For preset 4 (SOUL.md Maker) — Quick/Deep Forge: The SOUL.md was already generated by the interview process and written to `<WORKSPACE>/SOUL.md`. Copy the heartbeat template:
 > ```
-> cp assets/HEARTBEAT-template.md ~/workspace/HEARTBEAT.md
+> cp assets/HEARTBEAT-template.md <WORKSPACE>/HEARTBEAT.md
 > ```
 >
 > For preset 5 (custom): Do NOT copy starter packs. The agent will generate SOUL.md from the user's answers (see Step 3d).
 >
 > **Step 3c: Copy shared templates.** These apply to ALL presets. Use exec:
 > ```
-> cp assets/MEMORY-template.md ~/workspace/MEMORY.md && cp assets/DREAMS-template.md ~/workspace/DREAMS.md && cp assets/AGENTS-template.md ~/workspace/AGENTS.md && cp assets/SECURITY-template.md ~/workspace/SECURITY.md && cp assets/WORKFLOWS-template.md ~/workspace/WORKFLOWS.md && cp assets/TOOLS-template.md ~/workspace/TOOLS.md && cp assets/INDEX-template.md ~/workspace/INDEX.md && cp assets/ESCALATION-template.md ~/workspace/ESCALATION.md && cp assets/VERSION.md ~/workspace/VERSION.md && cp assets/LEARNINGS-template.md ~/workspace/.learnings/LEARNINGS.md && cp assets/ERRORS-template.md ~/workspace/.learnings/ERRORS.md
+> cp assets/MEMORY-template.md <WORKSPACE>/MEMORY.md && cp assets/DREAMS-template.md <WORKSPACE>/DREAMS.md && cp assets/AGENTS-template.md <WORKSPACE>/AGENTS.md && cp assets/SECURITY-template.md <WORKSPACE>/SECURITY.md && cp assets/WORKFLOWS-template.md <WORKSPACE>/WORKFLOWS.md && cp assets/TOOLS-template.md <WORKSPACE>/TOOLS.md && cp assets/INDEX-template.md <WORKSPACE>/INDEX.md && cp assets/ESCALATION-template.md <WORKSPACE>/ESCALATION.md && cp assets/VERSION.md <WORKSPACE>/VERSION.md && cp assets/LEARNINGS-template.md <WORKSPACE>/.learnings/LEARNINGS.md && cp assets/ERRORS-template.md <WORKSPACE>/.learnings/ERRORS.md
 > ```
 >
 > **Step 3d: Personalize files.** The agent uses exec to run `sed` commands replacing placeholders with the user's answers. This is the CRITICAL step that makes the workspace theirs.
@@ -444,7 +467,7 @@ After collecting answers, the agent explains what it's about to create, then doe
 >
 > **Step 3e: Verify setup.** Use exec:
 > ```
-> ls -la ~/workspace/SOUL.md ~/workspace/USER.md ~/workspace/MEMORY.md ~/workspace/DREAMS.md ~/workspace/AGENTS.md ~/workspace/SECURITY.md ~/workspace/HEARTBEAT.md ~/workspace/WORKFLOWS.md ~/workspace/ESCALATION.md ~/workspace/VERSION.md
+> ls -la <WORKSPACE>/SOUL.md <WORKSPACE>/USER.md <WORKSPACE>/MEMORY.md <WORKSPACE>/DREAMS.md <WORKSPACE>/AGENTS.md <WORKSPACE>/SECURITY.md <WORKSPACE>/HEARTBEAT.md <WORKSPACE>/WORKFLOWS.md <WORKSPACE>/ESCALATION.md <WORKSPACE>/VERSION.md
 > ```
 >
 > **Total: 3-5 tool calls.** Each one is explained before execution so the user knows exactly what's happening. Use `exec` for the `mkdir`/`cp` batch and `sed` personalization (shell is the right tool for these). Use `write` if you find yourself reaching for a heredoc.
@@ -565,10 +588,10 @@ When the user says "status" (or "how's my system", "dashboard", "system health")
 > **🚨 AGENT: Run these checks via exec, then format the output below. Do NOT tell the user to run anything.**
 
 ```
-exec: ls -la ~/workspace/SOUL.md ~/workspace/USER.md ~/workspace/MEMORY.md ~/workspace/AGENTS.md ~/workspace/SECURITY.md ~/workspace/HEARTBEAT.md 2>/dev/null | wc -l
-exec: wc -c ~/workspace/MEMORY.md 2>/dev/null
-exec: find ~/workspace/memory/ -name "*.md" -mtime -1 2>/dev/null | wc -l
-read: ~/workspace/VERSION.md
+exec: ls -la <WORKSPACE>/SOUL.md <WORKSPACE>/USER.md <WORKSPACE>/MEMORY.md <WORKSPACE>/AGENTS.md <WORKSPACE>/SECURITY.md <WORKSPACE>/HEARTBEAT.md 2>/dev/null | wc -l
+exec: wc -c <WORKSPACE>/MEMORY.md 2>/dev/null
+exec: find <WORKSPACE>/memory/ -name "*.md" -mtime -1 2>/dev/null | wc -l
+read: <WORKSPACE>/VERSION.md
 ```
 
 `exec` for the shell-pipelined checks (they use `ls|wc`, `wc -c`, `find|wc`). `read` for the plain file fetch — no shell needed and it's the canonical OpenClaw 5.x pattern.
@@ -598,7 +621,7 @@ Replace 🟢 with 🟡 if attention needed (e.g., MEMORY.md >3.5KB, missing file
 Use the `read` tool with a line limit (not `exec: head`) — OpenClaw 5.x prefers the dedicated read tool over shell pipes for plain file reads:
 
 ```
-read: ~/workspace/SOUL.md (lines 1-20)
+read: <WORKSPACE>/SOUL.md (lines 1-20)
 ```
 
 Then format as:
@@ -624,7 +647,7 @@ Say "edit persona" to make changes.
 `MEMORY.md` and the `memory/` directory are indexed by OpenClaw's built-in memory engine. Prefer `memory_get` over `exec: cat` for these files — it reads from the index, avoids re-reading on every call, and is the canonical 5.x pattern:
 
 ```
-memory_get: ~/workspace/MEMORY.md
+memory_get: <WORKSPACE>/MEMORY.md
 ```
 
 For a topic-level lookup ("what did we decide about pricing?"), use `memory_search` instead — it does hybrid keyword+vector search across all indexed memory files:
@@ -658,7 +681,7 @@ Return the top 3-5 chunks with their source file and line range. Format:
 Want me to read the full source of any of these?
 ```
 
-If memory_search returns nothing useful, fall back to `exec: grep -rni "topic" ~/workspace/memory/ ~/workspace/MEMORY.md` and report from there.
+If memory_search returns nothing useful, fall back to `exec: grep -rni "topic" <WORKSPACE>/memory/ <WORKSPACE>/MEMORY.md` and report from there.
 
 ### "route check" Command — Output Format
 
@@ -792,7 +815,7 @@ And if it shows `"profile": "minimal"` or `"profile": "messaging"`, tell the use
 
 ## Migration Notes for v1.7.x Workspaces
 
-Older versions of this skill said "use exec for everything." That still works — `exec: cat ~/workspace/MEMORY.md` is not broken — but it's slower, doesn't benefit from the memory index, and confuses the model about which tool is canonical. New behavior:
+Older versions of this skill said "use exec for everything." That still works — `exec: cat <WORKSPACE>/MEMORY.md` is not broken — but it's slower, doesn't benefit from the memory index, and confuses the model about which tool is canonical. New behavior:
 
 - **Replace `exec: cat <workspace-file>`** with `read` for non-memory files, `memory_get` for memory files.
 - **Replace `exec: head -N <file>`** with `read` + line range.
@@ -826,7 +849,7 @@ Check your current context window usage percentage.
 | 85-94% | Emergency checkpoint | `🟠 Context at [X]% — emergency checkpoint saved. Consider starting a new session soon.` |
 | 95%+ | Survival mode | `🔴 Context at [X]% — critical. Saving essentials. Please start a new session.` |
 
-**Checkpoint format:** Use the `write` tool (or append via `edit` if today's file exists) to `~/workspace/memory/YYYY-MM-DD.md`. OpenClaw's memory engine reindexes within ~1.5s of the write, so `memory_search` will find this checkpoint on the next call.
+**Checkpoint format:** Use the `write` tool (or append via `edit` if today's file exists) to `<WORKSPACE>/memory/YYYY-MM-DD.md`. OpenClaw's memory engine reindexes within ~1.5s of the write, so `memory_search` will find this checkpoint on the next call.
 
 ```
 ## Checkpoint [HH:MM] — Context: XX%
@@ -864,7 +887,7 @@ Want me to do this? (yes/no)
 If this is the FIRST message in a new session (no prior messages in conversation):
 
 1. Read SOUL.md and USER.md silently via the `read` tool. Use `memory_get` for MEMORY.md (it's indexed). No output to the user.
-2. Check for yesterday's log via `memory_get ~/workspace/memory/<yesterday>.md` — surface any uncompleted items.
+2. Check for yesterday's log via `memory_get <WORKSPACE>/memory/<yesterday>.md` — surface any uncompleted items.
 3. If anything is unclear about where we left off, use `memory_search` with the current task topic to pull recent context from across the memory index (auto-loaded daily logs + MEMORY.md + DREAMS.md).
 4. If items need attention, show:
 ```
@@ -1269,7 +1292,7 @@ Full 4-step protocol runs in an isolated session. Deep channel scan, priority as
 
 Every heartbeat that surfaces something uses this format (note the blank lines between indicators — critical for Discord/WhatsApp rendering):
 ```
-🫀 Feb 6, 10:30 AM PT | anthropic/claude-haiku-4-5 | AI Persona OS v1.8.0
+🫀 Feb 6, 10:30 AM PT | anthropic/claude-haiku-4-5 | AI Persona OS v1.9.0
 
 🟢 Context: 22% — Healthy
 
@@ -1286,9 +1309,9 @@ Indicators: 🟢 = healthy, 🟡 = attention recommended, 🔴 = action required
 
 ### Setup
 
-1. Copy the new template: `cp assets/HEARTBEAT-template.md ~/workspace/HEARTBEAT.md`
-2. Copy VERSION.md file: `cp assets/VERSION.md ~/workspace/VERSION.md`
-3. Copy ESCALATION.md: `cp assets/ESCALATION-template.md ~/workspace/ESCALATION.md`
+1. Copy the new template: `cp assets/HEARTBEAT-template.md <WORKSPACE>/HEARTBEAT.md`
+2. Copy VERSION.md file: `cp assets/VERSION.md <WORKSPACE>/VERSION.md`
+3. Copy ESCALATION.md: `cp assets/ESCALATION-template.md <WORKSPACE>/ESCALATION.md`
 4. **Add heartbeat prompt override** (strongly recommended) — see `references/heartbeat-automation.md`
 5. Validate config: check all required settings exist in workspace files via exec (catches missing settings)
 6. (Optional, user-initiated) Add cron jobs — copy-paste from `assets/cron-templates/` — requires openclaw CLI
@@ -1366,7 +1389,7 @@ examples/
     └── 10-philosophers-apprentice.md → "Lumen" — framework thinker
 ```
 
-**Manual use:** Copy files from the pack to `~/workspace/` and customize. But the agent-driven setup (say "switch preset" or "switch soul") is faster.
+**Manual use:** Copy files from the pack to `<WORKSPACE>/` and customize. But the agent-driven setup (say "switch preset" or "switch soul") is faster.
 
 ---
 

@@ -28,7 +28,7 @@
 
 **Manual install:** Copy a soul file to your workspace:
 ```
-cp examples/prebuilt-souls/01-contrarian-strategist.md ~/workspace/SOUL.md
+cp examples/prebuilt-souls/01-contrarian-strategist.md <WORKSPACE>/SOUL.md
 ```
 Then replace `[HUMAN]` with your name.
 

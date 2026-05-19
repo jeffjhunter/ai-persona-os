@@ -217,7 +217,7 @@ _Part of AI Persona OS by Jeff J Hunter — https://os.aipersonamethod.com_
 
 ## Post-Generation
 
-After writing the SOUL.md to `~/workspace/SOUL.md`:
+After writing the SOUL.md to `<WORKSPACE>/SOUL.md`:
 
 1. Show a summary of what was generated
 2. Ask: "Read through this and tell me — does this feel like the assistant you'd actually want? Anything feel off?"

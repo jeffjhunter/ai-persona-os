@@ -28,7 +28,7 @@
 
 **Manual install:** Copy a character soul to your workspace:
 ```
-cp examples/iconic-characters/02-deadpool.md ~/workspace/SOUL.md
+cp examples/iconic-characters/02-deadpool.md <WORKSPACE>/SOUL.md
 ```
 Then replace `[HUMAN]` with your name.
 

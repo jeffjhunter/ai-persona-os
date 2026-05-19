@@ -36,7 +36,7 @@ The workspace HEARTBEAT.md file is your agent's 30-minute pulse. It should be:
 The template in `assets/HEARTBEAT-template.md` is ready to use as-is. Copy it to your workspace:
 
 ```bash
-cp assets/HEARTBEAT-template.md ~/workspace/HEARTBEAT.md
+cp assets/HEARTBEAT-template.md <WORKSPACE>/HEARTBEAT.md
 ```
 
 ### Output Format
@@ -50,7 +50,7 @@ HEARTBEAT_OK
 
 **Checkpoint written:**
 ```
-🫀 Feb 5, 2:30 PM PT | anthropic/claude-haiku-4-5 | AI Persona OS v1.8.0
+🫀 Feb 5, 2:30 PM PT | anthropic/claude-haiku-4-5 | AI Persona OS v1.9.0
 
 🟢 Context: 31% — Healthy
 🟡 Memory: Stale — last checkpoint 47m ago

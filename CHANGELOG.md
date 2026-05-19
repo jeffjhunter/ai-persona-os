@@ -4,6 +4,32 @@ All notable changes to the AI Persona OS skill.
 
 ---
 
+## v1.9.0 — May 19, 2026
+
+**Workspace path detection — works with any OpenClaw 5.x install**
+
+Earlier versions hardcoded `~/workspace/` as the workspace path. That was wrong for the typical OpenClaw 5.x install, where the default workspace is `~/.openclaw/workspace/` (set by `agents.defaults.workspace`). Result: the skill's setup wizard created files in one directory while the agent read from another, leading to symptoms like "the agent ignores my SOUL.md" and "AI Persona OS setup looks empty."
+
+### Fixed — Workspace path mismatch
+
+- **New "Workspace Detection" step at session start.** Before any file operation, the agent reads `~/.openclaw/openclaw.json`, parses `agents.defaults.workspace` (with per-agent overrides from `agents.list[].workspace`), and remembers that path as `<WORKSPACE>` for the rest of the session.
+- **All `~/workspace/` references replaced with `<WORKSPACE>/`** in `SKILL.md`, the heartbeat automation guide, gallery READMEs, and helper scripts. The agent substitutes the discovered path at runtime.
+- **New Rule 11**: agents MUST resolve `<WORKSPACE>` before any file operation. Literal `<WORKSPACE>` is a placeholder, never a real path.
+- **Fallback chain** if discovery fails: env var `$OPENCLAW_WORKSPACE` → `agents.defaults.workspace` from JSON → default `$HOME/.openclaw/workspace`.
+- **New `scripts/resolve-workspace.sh`** ships as a documented helper — bash+jq+python with graceful fallbacks. Cron jobs and external tooling can use it to resolve the same path.
+
+### Why this matters
+
+Per the OpenClaw 5.x docs, `agents.defaults.workspace` is the canonical workspace location and defaults to `~/.openclaw/workspace/`. Custom installs (per-agent overrides, multi-agent setups) need detection to work correctly. Hardcoding a path made the skill brittle for everyone who didn't manually align their config to it.
+
+### Compatibility
+
+- **v1.8.x users with files at `~/workspace/`**: your data is fine. On first v1.9.0 run, the skill detects your actual configured workspace. If it differs from where your files live, the skill will detect a "fresh install" and offer the setup menu — you can either (a) `mv ~/workspace/* ~/.openclaw/workspace/` and re-run, or (b) point `agents.defaults.workspace` to `~/workspace/` in `openclaw.json` to keep using the v1.8.0 location.
+- **Fresh installs**: just works — files land where the agent actually reads from.
+- **The DREAMS.md migration check from v1.8.0** still runs but now uses `<WORKSPACE>/DREAMS.md` instead of `~/workspace/DREAMS.md`.
+
+---
+
 ## v1.8.0 — May 18, 2026
 
 **OpenClaw 5.18 compatibility — memory tools, Discord routing fix, tool refactor**
@@ -107,13 +133,13 @@ OpenClaw's `concepts/soul.md` tightened the bar: SOUL.md is for voice/tone/opini
 
 ### Fixed
 
-- **Heartbeat setup typo** — `cp assets/VERSION.md ~/workspace/VERSION` → `~/workspace/VERSION.md` ([SKILL.md:1075](SKILL.md)). The Step 3c setup command was already correct; only the inline heartbeat section was stale.
+- **Heartbeat setup typo** — `cp assets/VERSION.md <WORKSPACE>/VERSION` → `<WORKSPACE>/VERSION.md` ([SKILL.md:1075](SKILL.md)). The Step 3c setup command was already correct; only the inline heartbeat section was stale.
 - **Stale version sample** — heartbeat output example showed `AI Persona OS v1.4.1`; now `v1.7.0` to match the running skill.
 
 ### Compatibility
 
 - Workspace files: no changes required. Existing SOUL.md/USER.md/AGENTS.md/etc. continue to work.
-- Heartbeat will flag the version mismatch (`workspace v1.6.x → skill v1.7.0`) the first time it runs. Bumping `~/workspace/VERSION.md` to 1.7.0 clears it.
+- Heartbeat will flag the version mismatch (`workspace v1.6.x → skill v1.7.0`) the first time it runs. Bumping `<WORKSPACE>/VERSION.md` to 1.7.0 clears it.
 - Gateway config: no required changes. If you take advantage of the new `envVars` declarations, no action is needed — they're informational.
 
 ---
