@@ -12,6 +12,103 @@
 
 AI Persona OS becomes an **OpenClaw plugin** that bundles a thin skill and a templates directory. Hot paths (workspace detection, heartbeat, recall, route check) move from "agent parses SKILL.md instructions every session" to "first-class tools registered by plugin code." Same product, native execution, fewer tokens per turn, deterministic behavior, real moat.
 
+**Audit update (2026-05-19):** OpenClaw PR [#74853](https://github.com/openclaw/openclaw/pull/74853) added a grouped host-hook recipe catalogue — 18 recipes covering session state, control UI descriptors, session actions, scheduler jobs, run context, agent event emission, heartbeat prompt contribution, runtime lifecycle cleanup, and 5 composition recipes (including a Setup Wizard recipe that is almost word-for-word what `persona_setup` should be). Every one of the original 10 tools in this design has at least one seam upgrade. See § Audit Update below.
+
+---
+
+## Audit Update: PR #74853 host-hook recipes (2026-05-19)
+
+The original design (sections below) used the basic `registerTool` / `registerCommand` / `api.on(...)` surface. PR #74853 documents a richer grouped surface that turns AI Persona OS into a first-class gateway layer with UI presence, persistent state, and proper composition with other plugins — not just a tool bag the agent invokes.
+
+### The new grouped API surface
+
+```typescript
+register(api) {
+  // Surfaces this design already used:
+  api.registerTool(...)
+  api.registerCommand(...)
+  api.on("gateway_start" | "before_tool_call" | "message_received" | ...)
+
+  // NEW grouped surfaces (PR #74853):
+  api.session.state.registerSessionExtension(...)           // JSON state per session, projected to row
+  api.session.workflow.enqueueNextTurnInjection(...)        // exactly-once next-turn context
+  api.session.workflow.registerSessionSchedulerJob(...)     // plugin-owned scheduled turns w/ cleanup
+  api.session.controls.registerSessionAction(...)           // Gateway-mediated actions w/ scopes
+  api.session.controls.registerControlUiDescriptor(...)     // data-only UI cards (host renders)
+  api.agent.events.registerAgentEventSubscription(...)      // listen to lifecycle/tool/approval events
+  api.agent.events.emitAgentEvent(...)                      // emit plugin-id-scoped events
+  api.runContext.setRunContext(...) / getRunContext(...) / clearRunContext(...)
+  api.lifecycle.registerRuntimeLifecycle(...)               // paired cleanup for every register* call
+  api.on("heartbeat_prompt_contribution", ...)              // contribute context ONLY on heartbeat turns
+  api.on("agent_turn_prepare", ...)                         // contribute context on every turn-prepare
+}
+```
+
+### Tool-by-tool seam upgrades
+
+| Original tool | Original implementation | Upgraded with new seams |
+|---|---|---|
+| `persona_workspace_resolve` | A tool the agent calls to get the path | Also `registerSessionExtension({namespace: "workspace"})` — the resolved path is now session state, projected to row, and visible to OTHER plugins. AI Persona OS becomes the canonical workspace-resolver for the whole ecosystem. |
+| `persona_setup` | Tool the agent calls with `preset` param | Rebuilt as Recipe D (Setup Wizard): `registerSessionExtension` for progress state + `registerCommand("/setup-advance <step>")` for each step + `registerControlUiDescriptor({kind: "wizard-card"})` for a **persistent UI card showing setup progress**. Resumable across reloads. The user can click the card OR type chat OR use the slash command. |
+| `persona_status` | Chat command returns 🟢🟡🔴 dashboard | Becomes a `registerControlUiDescriptor({kind: "meter"})` — a **permanent UI card** showing memory %, context %, version, last checkpoint. Updates live via session state changes. Replaces "user types 'status' to see health" with "health is always visible." |
+| `persona_recall` | Chat tool wrapping memory_search | Adds `registerSessionAction({id: "recall", schema: {query: string}})` — recall becomes an action button in the UI. Plus `runContext` cache so follow-up "what about the third one?" works without re-searching. |
+| `persona_route_check` | Chat tool that reads openclaw.json | Becomes a **routing health UI card** (`registerControlUiDescriptor`) + a `registerSessionAction({id: "configure-discord", requiredScopes: ["operator.admin"]})` for the fix path. Operator-scope gating prevents non-admins from changing config. |
+| `persona_switch_soul` | Chat tool | `registerSessionAction({id: "switch-soul", schema: {soul: string}})` — UI gets a soul picker panel via `registerControlUiDescriptor({kind: "gallery"})`. Plus `emitAgentEvent("ai-persona-os.soul-switched")` for observability. |
+| `persona_blend_souls` | Chat tool | Same pattern — session action + gallery descriptor + emit event. |
+| `persona_dream` | Triggered consolidation | `registerSessionSchedulerJob({kind: "ai-persona-os.dream"})` for scheduled runs + `emitAgentEvent("ai-persona-os.dream-completed")` + UI descriptor showing last dream timestamp. Plugin owns the cleanup of in-flight dream jobs. |
+| `persona_checkpoint` | Chat tool + threshold hook | `registerSessionExtension({namespace: "checkpoint"})` tracks last-checkpoint state. `runContext` tracks per-run checkpoint count to dedupe. `registerSessionAction` for explicit save. `registerAgentEventSubscription({streams: ["lifecycle"]})` auto-checkpoints on `lifecycle:end`. |
+| `persona_doctor` | Chat tool | Composes everything: read session extensions for current state + emit events for findings + `registerControlUiDescriptor` showing health summary + `registerSessionAction({id: "auto-fix", requiredScopes: ["operator.admin"]})` for repairs. |
+
+### Hook upgrades
+
+| Original hook | Upgraded approach |
+|---|---|
+| `gateway_start` | Same — but now also: register all session extensions, control UI descriptors, scheduler jobs, lifecycle cleanups here. ONE entry point for the whole plugin shape. |
+| `message_received` (NLU command routing) | DEPRECATE — replaced by `registerCommand` with scoped commands like `/persona setup`, `/persona status`, `/persona recall`. Deterministic, scope-gated, no model NLU dependency. |
+| `before_tool_call` (context-threshold checkpoint) | Replaced by `registerAgentEventSubscription({streams: ["lifecycle", "tool"]})` watching for context-pressure events, combined with `runContext` to track per-run checkpoint state. |
+| `cron_changed` | Replaced by owning our own scheduler jobs via `registerSessionSchedulerJob` instead of monitoring host crons. |
+| **NEW: `heartbeat_prompt_contribution`** | **The killer hook.** Plugin contributes context ONLY on heartbeat turns, never on user-initiated turns. Emit "🟢 Context: 22% — Healthy" etc. as `appendContext` per heartbeat. **Direct replacement for HEARTBEAT.md.** Zero tokens for user turns; tiny tokens for heartbeat turns; no model needs to read a 30-line HEARTBEAT.md template. |
+| **NEW: `agent_turn_prepare`** | Optional — could inject AI Persona OS's "you have a workspace at X, your soul is Y" context at the start of every turn deterministically. Replaces the SKILL.md preamble. |
+| **NEW: `registerRuntimeLifecycle`** | **Required discipline.** Every register* call gets a paired cleanup entry. Without this, plugin reload/disable leaks resources. The cleanup matrix at line 1981 of the host-hooks doc is non-negotiable. |
+
+### New product capabilities unlocked
+
+1. **Permanent UI presence.** AI Persona OS becomes visible in the TUI/Control UI as a set of cards: status meter, soul indicator, routing health, setup wizard, DREAMS.md last-run timestamp. Not chat-only anymore.
+2. **Resumable multi-step setup.** Setup progress persists across gateway reloads via session extension. The user can install on Monday, set up the workspace on Tuesday, pick a soul on Wednesday, and the wizard remembers exactly where they left off.
+3. **Plugin event ecosystem.** Other plugins can subscribe to `ai-persona-os.checkpoint`, `ai-persona-os.dream-completed`, `ai-persona-os.soul-switched`, etc. AI Persona OS becomes a citizen of the OpenClaw plugin ecosystem, not an island.
+4. **Operator scope gating.** Destructive actions (switch soul, configure Discord, auto-fix doctor) require `operator.admin` or `operator.write`. Proper authorization model — non-admin users can use the read-only tools without being able to break things.
+5. **Heartbeat without HEARTBEAT.md.** No more 30-line markdown file the model reads every 30 minutes. Plugin emits 🟢🟡🔴 directly via `heartbeat_prompt_contribution`. Saves ~90% of heartbeat token cost.
+6. **Background monitoring.** Watch run lifecycle events, schedule periodic ticks, surface elapsed/SLA on heartbeats only. Recipe C is template-ready.
+
+### Revised phase plan (with new seams)
+
+| Phase | Deliverable | Was | Now |
+|-------|-------------|-----|-----|
+| 1. Research + Design | DESIGN-V3.md + this audit | 1h | 2h ✅ |
+| 2. Scaffold | Repo skeleton, one no-op tool loads | 2-3h | 2-3h |
+| 3. Core read-only tools + first UI descriptor | All read-only tools + Control UI status card (Recipe #10) | 4-6h | 6-8h |
+| 4. Setup wizard with persistent state | `persona_setup` as Recipe D (session extension + commands + UI card + resumability) | 4-6h | 6-8h |
+| 5. Hooks + native heartbeat + event subscriptions | `heartbeat_prompt_contribution` replacing HEARTBEAT.md + lifecycle subscriptions for auto-checkpoint | 3-5h | 5-7h |
+| 6. Write tools + session actions + scheduler jobs | checkpoint/switch_soul/blend/dream as session actions, dream scheduling via `registerSessionSchedulerJob` | 4-6h | 6-9h |
+| 7. CLI + operator scopes | All slash commands as scoped `registerCommand`, CLI parity, operator.admin gating | 2-3h | 3-5h |
+| 8. Tests + docs + ship + cleanup matrix | Full lifecycle cleanup discipline + contract tests + npm/ClawHub publish | 4-6h | 6-9h |
+
+**Revised total: ~36-51 hours** (was 25-40). The increase is real work delivering substantially more product surface. Each phase now ships more than the original plan.
+
+### Specific source-aligned details from the recipes
+
+- **Event stream scoping:** external plugins must emit on `pluginId.*` streams. AI Persona OS uses `ai-persona-os.checkpoint`, `ai-persona-os.soul-switched`, etc. Host-reserved streams (`lifecycle`, `assistant`, `tool`, `approval`) are subscribe-only.
+- **`pluginExtensions[]`:** session row exposes an array of `{ pluginId, namespace, value }` — not a nested object. Plugin reads its own state by filtering on pluginId.
+- **`requiredScopes`:** session actions and commands gate by `["operator.read"]`, `["operator.write"]`, or `["operator.admin"]`. The doctor's `--fix` path requires admin.
+- **`allowPromptInjection=false`** is a per-plugin opt-out for prompt contribution hooks. AI Persona OS will document that operators can flip this off if they want zero hidden context contribution.
+- **Cleanup matrix** (host-hooks doc line 1981) maps every register* call to its cleanup path on (a) session end, (b) run end, (c) plugin disable, (d) plugin uninstall, (e) gateway shutdown.
+
+### Decision: rewrite or amend?
+
+This audit doesn't invalidate the original design — it strengthens it. The tools, templates, and overall shape stay. What changes is the registration surface (richer) and the user experience (UI presence + scope gating + resumable wizard).
+
+**Recommendation:** keep the original design content below as a reference for the conceptual model. Treat this Audit Update as the authoritative implementation guide for Phase 2 onward. Tool implementations should always pair with the upgraded seam from the table above.
+
 ---
 
 ## Why move from skill to plugin
