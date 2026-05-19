@@ -15,7 +15,13 @@
  */
 
 import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
+import { PLUGIN_VERSION } from "./lib/version.js";
 import { registerPersonaWorkspaceResolve } from "./tools/persona_workspace_resolve.js";
+import { registerPersonaStatus } from "./tools/persona_status.js";
+import { registerPersonaRecall } from "./tools/persona_recall.js";
+import { registerPersonaRouteCheck } from "./tools/persona_route_check.js";
+import { registerPersonaDoctor } from "./tools/persona_doctor.js";
+import { registerStatusMeterUi } from "./ui/status_meter.js";
 
 export default definePluginEntry({
   id: "ai-persona-os",
@@ -25,12 +31,21 @@ export default definePluginEntry({
     "SOUL.md Maker, memory tools, Discord routing fix, native heartbeat, " +
     "never-forget context. By Jeff J Hunter.",
   register(api) {
+    const toolCount = 5;
+    const uiDescriptorCount = 1;
     api.logger.info(
-      `ai-persona-os@3.0.0-alpha.1 loading — registering ${1} tool(s)`
+      `ai-persona-os@${PLUGIN_VERSION} loading — registering ${toolCount} tool(s) + ${uiDescriptorCount} UI descriptor(s)`
     );
 
     // Tools
     registerPersonaWorkspaceResolve(api);
+    registerPersonaStatus(api);
+    registerPersonaRecall(api);
+    registerPersonaRouteCheck(api);
+    registerPersonaDoctor(api);
+
+    // Control UI descriptors
+    registerStatusMeterUi(api);
 
     // Lifecycle cleanup — paired with every register* call per the
     // host-hooks recipe doc § Cleanup matrix. For alpha.1 there's nothing

@@ -2,13 +2,17 @@
   "id": "ai-persona-os",
   "name": "AI Persona OS",
   "description": "The complete operating system for OpenClaw agents. 24 souls (JARVIS, Thanos, Mary Poppins, Rook...), SOUL.md Maker, memory tools, Discord routing fix, native heartbeat, never-forget context. By Jeff J Hunter.",
-  "version": "3.0.0-alpha.1",
+  "version": "3.0.0-alpha.2",
   "activation": {
     "onStartup": true
   },
   "contracts": {
     "tools": [
-      "persona_workspace_resolve"
+      "persona_workspace_resolve",
+      "persona_status",
+      "persona_recall",
+      "persona_route_check",
+      "persona_doctor"
     ]
   },
   "configSchema": {

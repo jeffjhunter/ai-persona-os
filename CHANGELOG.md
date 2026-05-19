@@ -1,6 +1,61 @@
 # AI Persona OS — Changelog
 
-All notable changes to the AI Persona OS skill.
+All notable changes to the AI Persona OS skill and plugin.
+
+---
+
+## v3.0.0-alpha.2 — May 19, 2026 — Phase 3 (pre-release)
+
+**Read-only plugin tools + first Control UI descriptor**
+
+The plugin now ships four new read-only tools alongside the Phase 2 workspace resolver, plus its first Control UI contribution. All surfaces are pure-read and safe to call in any environment.
+
+### Added — Tools
+
+- **`persona_status`** — workspace health dashboard. Returns 🟢🟡🔴 indicators for core files (`SOUL.md`, `MEMORY.md`, `USER.md` / `IDENTITY.md`, `AGENTS.md`, `HEARTBEAT.md`, `TOOLS.md`, `VERSION.md`), `MEMORY.md` size against the configured 4 KB limit, count of today's daily-log entries in `memory/`, and the workspace version string. `compact` and `detailed` formats.
+- **`persona_recall`** — workspace memory search. Walks `MEMORY.md` + `memory/*.md`, scores by token-overlap, boosts daily logs from the last 7 days (×1.5), returns top matches with `file:line` citations. Hard caps at 50 results and 256 KB per file.
+- **`persona_route_check`** — read-only audit of `openclaw.json` routing settings. Surfaces 🟢🟡🔴 status for `accounts.default`, `channels.discord.defaultAccount`, and `agents.defaults.heartbeat.target`, with a one-line remediation hint per missing/warn check.
+- **`persona_doctor`** — composite lint. Combines `persona_status` + `persona_route_check` findings with extra checks for `tools.profile` and `VERSION.md` major-version drift against the running plugin. Lint-only — Phase 6 ships `--fix`.
+
+### Added — Control UI
+
+- **Status meter descriptor** (`ai-persona-os.status-meter`) registered via `api.session.controls.registerControlUiDescriptor`. Declares a header meter card with three metrics (context %, MEMORY.md %, version) and their warn/critical thresholds. Live data wiring (a `registerSessionExtension` publisher) lands in Phase 4 alongside `persona_setup`. Paired with a runtime-lifecycle cleanup.
+
+### Internal
+
+- New shared libs: `lib/workspace-status.ts`, `lib/memory-recall.ts`, `lib/openclaw-config.ts`, `lib/route-check.ts`, `lib/doctor.ts`, `lib/version.ts`. Tool wrappers stay thin so Phase 8 can unit-test the pure helpers.
+- Always reads `openclaw.json` fresh from disk via `readOpenClawConfig()` so routing/doctor reports reflect post-edit state without a gateway restart.
+- Plugin version constant centralized in `lib/version.ts` so `package.json`, `openclaw.plugin.json`, the loading log line, and the doctor's mismatch detector all stay in sync from one place.
+
+### Not in this release (deferred)
+
+- `persona_setup` (Phase 4 — Setup Wizard via Recipe D)
+- Heartbeat / `heartbeat_prompt_contribution` (Phase 5)
+- `persona_doctor --fix`, `persona_route_check --fix` (Phase 6)
+- `persona_checkpoint`, `persona_switch_soul`, `persona_blend_souls`, `persona_dream` (Phase 6)
+- Slash commands + CLI parity + operator scopes (Phase 7)
+- Bundled `skills/ai-persona-os/SKILL.md` (Phase 8)
+
+---
+
+## v3.0.0-alpha.1 — May 19, 2026 — Phase 2 (pre-release, retroactive entry)
+
+**Plugin scaffold — first loadable plugin shell**
+
+Project skeleton for the v3.0 plugin rewrite (`plugin/` subfolder). Loads cleanly into OpenClaw 2026.5.18 alongside the v2.0 skill (which stays installed and active during the phased rollout).
+
+### Added
+
+- `plugin/package.json` with `openclaw` extension declaration, Node 22.19+ engine pin.
+- `plugin/openclaw.plugin.json` manifest with `workspaceOverride` config schema.
+- `plugin/tsconfig.json` — strict TS, NodeNext modules.
+- `plugin/src/index.ts` — `definePluginEntry` with the registration entry point and one runtime-lifecycle cleanup hook (cleanup-discipline pattern from PR #74853).
+- **`persona_workspace_resolve`** tool — returns the resolved workspace path and tells the caller which source it came from (plugin config / env var / per-agent override / global default / fallback). Pure resolution logic lives in `lib/workspace.ts`.
+
+### Notes
+
+- Plugin coexists with the v2.0 skill installation; no overlap, no conflicts.
+- Phase 2 scope: scaffold + one tool that loads. Read-only tools land in Phase 3.
 
 ---
 
