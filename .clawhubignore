@@ -1,0 +1,32 @@
+# ClawHub publish ignore — keep bundles lean and reproducible
+
+# Local dev / packaging artifacts
+*.zip
+*.tar
+*.tar.gz
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / IDE state
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS / temp
+.tmp/
+tmp/
+*.log
+
+# Test / build outputs
+node_modules/
+dist/
+build/
+coverage/
+
+# ClawHub metadata that the CLI manages (not part of the published bundle)
+.clawhub/
+.clawdhub/
+_meta.json

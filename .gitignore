@@ -1,0 +1,36 @@
+# Build artifacts — distribute via GitHub Releases instead
+*.zip
+*.tar
+*.tar.gz
+
+# Helper scripts (any underscore-prefixed file at repo root)
+/_*.py
+/_*.sh
+/_sandbox-Dockerfile
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor state
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Local/test runs
+.tmp/
+tmp/
+*.log
+
+# Build outputs (in case anyone adds scripts later)
+node_modules/
+dist/
+build/
+coverage/
+
+# ClawHub CLI-managed metadata
+.clawhub/
+.clawdhub/
