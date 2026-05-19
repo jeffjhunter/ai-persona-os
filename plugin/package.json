@@ -1,0 +1,67 @@
+{
+  "name": "@jeffjhunter/openclaw-ai-persona-os",
+  "version": "3.0.0-alpha.1",
+  "description": "The complete operating system for OpenClaw agents, rebuilt as a plugin. 24 souls, SOUL.md Maker, memory tools, Discord routing fix, native heartbeat, never-forget context, structured escalation. By Jeff J Hunter.",
+  "homepage": "https://github.com/jeffjhunter/ai-persona-os",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jeffjhunter/ai-persona-os.git",
+    "directory": "plugin"
+  },
+  "bugs": {
+    "url": "https://github.com/jeffjhunter/ai-persona-os/issues"
+  },
+  "license": "MIT",
+  "author": "Jeff J Hunter <https://jeffjhunter.com>",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "openclaw.plugin.json",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "rebuild": "npm run clean && npm run build",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit"
+  },
+  "openclaw": {
+    "extensions": [
+      "./dist/index.js"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.5.0",
+      "minGatewayVersion": "2026.5.0"
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.6.0"
+  },
+  "peerDependencies": {
+    "openclaw": ">=2026.5.0"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "keywords": [
+    "openclaw",
+    "openclaw-plugin",
+    "ai-persona",
+    "ai-agent",
+    "discord-bot",
+    "persona",
+    "llm-agent"
+  ]
+}
