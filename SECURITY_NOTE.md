@@ -20,7 +20,7 @@ Some automated security scanners (e.g. VirusTotal Code Insight, ClawScan static 
 - **Trigger:** Words like "execute," "execution," and "execute commands" appear frequently in documentation.
 - **Reality:** These describe the *concept* of AI agent task execution within the persona framework. There are **zero** `eval()`, `exec()`, or dynamic code execution calls in any script.
 
-## v1.8.0 additions (OpenClaw 5.x compatibility)
+## v1.8.0 additions (OpenClaw 2026.x compatibility)
 
 ### "Reading sensitive config file" — `cat ~/.openclaw/openclaw.json`
 - **Trigger:** The `route check` in-chat command (and the `configure Discord` flow) inspect `~/.openclaw/openclaw.json` with patterns like:
@@ -43,7 +43,7 @@ Some automated security scanners (e.g. VirusTotal Code Insight, ClawScan static 
 
 ### "Memory tool invocations" — `memory_search`, `memory_get`
 - **Trigger:** v1.8.0 switched many file reads from `exec: cat MEMORY.md` to the dedicated `memory_get` / `memory_search` tools.
-- **Reality:** These are **built-in OpenClaw 5.x tools** with explicit allow rules in the host policy. They read from the gateway's indexed memory store (`~/.openclaw/memory/<agentId>.sqlite`) — they do not make network calls or escape the workspace.
+- **Reality:** These are **built-in OpenClaw 2026.x tools** with explicit allow rules in the host policy. They read from the gateway's indexed memory store (`~/.openclaw/memory/<agentId>.sqlite`) — they do not make network calls or escape the workspace.
 
 ## Verification
 
