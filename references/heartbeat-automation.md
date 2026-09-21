@@ -17,27 +17,32 @@ AI Persona OS splits operations into two layers:
 
 | Layer | Mechanism | Frequency | Cost | Purpose |
 |-------|-----------|-----------|------|---------|
-| **Pulse** | HEARTBEAT.md | Every 30min | Low (~93 tokens) | Context guard + memory health |
+| **Pulse** | Native heartbeat + monitor scratch | Every 30min | Low | Context guard + memory health |
 | **Briefing** | Cron job (isolated) | 1-2x daily | Medium | Full 4-step protocol + channel scan |
 
-**Why two layers?** Heartbeats run full agent turns. If HEARTBEAT.md is 170 lines, you burn tokens 48 times/day reading documentation the agent already knows. Keep the heartbeat tiny; move heavy ops to cron.
+**Why two layers?** Heartbeats run full agent turns, so keep the heartbeat checklist tiny; move heavy ops to cron. The checklist now lives in the heartbeat monitor's scratch, not a workspace file - OpenClaw retired workspace HEARTBEAT.md in 2026.8.1 and the runtime no longer reads it.
 
 ---
 
 ## Layer 1: Heartbeat (Every 30 Minutes)
 
-### What HEARTBEAT.md Does
+### What the heartbeat monitor scratch does
 
-The workspace HEARTBEAT.md file is your agent's 30-minute pulse. It should be:
-- Under 20 lines
-- Imperative (commands, not documentation)
-- Focused on context protection and memory health
+Heartbeat is a native, system-owned OpenClaw automation. The cadence lives in config (`agents.defaults.heartbeat.every`, default 30m; "0m" disables), and the tiny checklist lives in the heartbeat monitor's scratch - not in a workspace file.
 
-The template in `assets/HEARTBEAT-template.md` is ready to use as-is. Copy it to your workspace:
+Set the checklist once:
 
 ```bash
-cp assets/HEARTBEAT-template.md <WORKSPACE>/HEARTBEAT.md
+openclaw cron list --all          # find the "Heartbeat (<agent-id>)" job
+openclaw cron scratch <jobId> --set "- Context guard: if context >=70%, write a checkpoint to memory/YYYY-MM-DD.md NOW and skip everything else.
+- Memory: MEMORY.md exists and stays under 4KB; archive entries older than 30 days to memory/archive/.
+- VERSION.md matches the installed skill version; flag upgrades.
+- Report with the traffic-light format below; if all green and no action taken, reply only HEARTBEAT_OK."
 ```
+
+Keep the scratch short: it is read on every heartbeat turn.
+
+> **Migrating?** If your workspace still has a HEARTBEAT.md, run `openclaw doctor --fix` once. It imports the checklist into the monitor scratch and archives the file. The old template file is retained in this repo only as a migration pointer (assets/HEARTBEAT-template.md).
 
 ### Output Format
 
@@ -124,21 +129,20 @@ Override the default OpenClaw heartbeat prompt. This is **strongly recommended**
       "heartbeat": {
         "every": "30m",
         "target": "last",
-        "ackMaxChars": 20,
-        "prompt": "Read HEARTBEAT.md and execute every instruction. On the first line show: 🫀 [current date/time] | [your model name] | AI Persona OS v[VERSION from workspace VERSION.md file]. Then report using 🟢🟡🔴 indicators — one per line with a blank line between each: Context, Memory, Workspace, Tasks. If you took action, state what with → prefix. Only reply HEARTBEAT_OK if all 🟢 and no action taken. Do NOT use Step 0/1/2/3/4 format. Do NOT use markdown tables. Do NOT use headers."
+        "prompt": "Follow the heartbeat monitor scratch checklist and execute every instruction. On the first line show: 🫀 [current date/time] | [your model name] | AI Persona OS v[VERSION from workspace VERSION.md file]. Then report using 🟢🟡🔴 indicators — one per line with a blank line between each: Context, Memory, Workspace, Tasks. If you took action, state what with → prefix. Only reply HEARTBEAT_OK if all 🟢 and no action taken. Do NOT use Step 0/1/2/3/4 format. Do NOT use markdown tables. Do NOT use headers. On the first line show: 🫀 [current date/time] | [your model name] | AI Persona OS v[VERSION from workspace VERSION.md file]. Then report using 🟢🟡🔴 indicators — one per line with a blank line between each: Context, Memory, Workspace, Tasks. If you took action, state what with → prefix. Only reply HEARTBEAT_OK if all 🟢 and no action taken. Do NOT use Step 0/1/2/3/4 format. Do NOT use markdown tables. Do NOT use headers."
       }
     }
   }
 }
 ```
 
-This replaces the default prompt ("Read HEARTBEAT.md if it exists...") with one that:
+This replaces the default prompt with one that:
 - Shows model name and OS version on the first line (instant visibility)
 - Explicitly requires 🟢🟡🔴 indicators
 - Forces line breaks between indicators (blank line between each)
 - Blocks the old Step format that v1.2.0 agents may have learned
 - Blocks markdown tables (garbled on WhatsApp/Telegram)
-- Suppresses HEARTBEAT_OK via ackMaxChars (your phone stays silent when all green)
+- Replies HEARTBEAT_OK when all green - OpenClaw suppresses a bare HEARTBEAT_OK acknowledgment automatically (fixed 300-char budget), and NO_REPLY is also accepted, so your phone stays silent when all green
 
 ---
 
@@ -232,9 +236,9 @@ Deliver a weekly summary with wins, issues, and focus areas for the coming week.
 }
 ```
 
-Just uses HEARTBEAT.md as-is. Good starting point for single-channel users.
+Uses the monitor scratch checklist as-is. Good starting point for single-channel users.
 
-> **Multi-channel users:** `"target": "last"` will drift to whichever channel you most recently messaged from. If you want heartbeats pinned to Discord, see the [Channel Routing](#channel-routing--keeping-heartbeats-on-discord) section above and replace `"target": "last"` with `"target": { "kind": "discordUser", "id": "<your-discord-user-id>" }`.
+> **Multi-channel users:** `"target": "last"` will drift to whichever channel you most recently messaged from. If you want heartbeats pinned to Discord, see the [Channel Routing](#channel-routing--keeping-heartbeats-on-discord) section above and set `"target": "discord"` plus `"to": "<your-discord-user-id>"` (target accepts `owner`, `last`, `none`, or a channel ID; the recipient goes in `to`).
 
 ### Recommended Setup (Heartbeat + Cron)
 
@@ -245,8 +249,7 @@ Just uses HEARTBEAT.md as-is. Good starting point for single-channel users.
       "heartbeat": {
         "every": "30m",
         "target": "last",
-        "ackMaxChars": 20,
-        "prompt": "Read HEARTBEAT.md and execute every instruction. On the first line show: 🫀 [current date/time] | [your model name] | AI Persona OS v[VERSION from workspace VERSION.md file]. Then report using 🟢🟡🔴 indicators — one per line with a blank line between each: Context, Memory, Workspace, Tasks. If you took action, state what with → prefix. Only reply HEARTBEAT_OK if all 🟢 and no action taken. Do NOT use Step 0/1/2/3/4 format. Do NOT use markdown tables. Do NOT use headers.",
+        "prompt": "Follow the heartbeat monitor scratch checklist and execute every instruction. On the first line show: 🫀 [current date/time] | [your model name] | AI Persona OS v[VERSION from workspace VERSION.md file]. Then report using 🟢🟡🔴 indicators — one per line with a blank line between each: Context, Memory, Workspace, Tasks. If you took action, state what with → prefix. Only reply HEARTBEAT_OK if all 🟢 and no action taken. Do NOT use Step 0/1/2/3/4 format. Do NOT use markdown tables. Do NOT use headers. On the first line show: 🫀 [current date/time] | [your model name] | AI Persona OS v[VERSION from workspace VERSION.md file]. Then report using 🟢🟡🔴 indicators — one per line with a blank line between each: Context, Memory, Workspace, Tasks. If you took action, state what with → prefix. Only reply HEARTBEAT_OK if all 🟢 and no action taken. Do NOT use Step 0/1/2/3/4 format. Do NOT use markdown tables. Do NOT use headers.",
         "activeHours": {
           "start": "07:00",
           "end": "23:00"
@@ -282,29 +285,21 @@ Hourly heartbeats during work hours only. Use a single daily cron job for the br
 
 ---
 
-## Migrating from v1.2.x
+## Migrating from older versions
 
-If you're upgrading from v1.2.0 or v1.2.1:
+### From the HEARTBEAT.md era (any install before OpenClaw 2026.8.1)
 
-### Automatic Migration (v1.3.1+)
+Run `openclaw doctor --fix` once. It imports your workspace HEARTBEAT.md checklist into the heartbeat monitor's scratch and archives the file. Then set the current prompt override below if you want the 🟢🟡🔴 format.
 
-The new HEARTBEAT.md template includes a migration check at the top. If the agent detects it's running an old template (>30 lines), it will update from the current skill template. This happens automatically on the first heartbeat after upgrade.
+### From v1.2.0 or v1.2.1
 
-### Manual Migration
-
-If auto-migration doesn't trigger, tell your agent:
-
-> "Read the file at your ai-persona-os skill folder: assets/HEARTBEAT-template.md. Now replace your workspace HEARTBEAT.md with that content exactly. Do not add anything."
-
-### Critical: Add the Heartbeat Prompt Override
-
-**This step prevents agents from reverting to the old Step 0/1/2/3/4 format.** Agents that ran v1.2.0 for a while have the old format in their learned behavior. Even with a new HEARTBEAT.md, they may ignore it and produce the old verbose output. The prompt override forces the new format at the OpenClaw level.
+**The prompt override prevents agents from reverting to the old Step 0/1/2/3/4 format.** Agents that ran v1.2.0 for a while have the old format in their learned behavior. The prompt override forces the new format at the OpenClaw level.
 
 Tell your agent:
 
-> "Update your openclaw.json heartbeat to: `{ "every": "30m", "target": "last", "ackMaxChars": 20, "prompt": "Read HEARTBEAT.md and execute every instruction. On the first line show: 🫀 [current date/time] | [your model name] | AI Persona OS v[VERSION from workspace VERSION.md file]. Then report using 🟢🟡🔴 indicators — one per line with a blank line between each: Context, Memory, Workspace, Tasks. If you took action, state what with → prefix. Only reply HEARTBEAT_OK if all 🟢 and no action taken. Do NOT use Step 0/1/2/3/4 format. Do NOT use markdown tables. Do NOT use headers." }`"
+> "Update your openclaw.json heartbeat to: `{ "every": "30m", "target": "last", "prompt": "Follow the heartbeat monitor scratch checklist and execute every instruction. On the first line show: 🫀 [current date/time] | [your model name] | AI Persona OS v[VERSION from workspace VERSION.md file]. Then report using 🟢🟡🔴 indicators — one per line with a blank line between each: Context, Memory, Workspace, Tasks. If you took action, state what with → prefix. Only reply HEARTBEAT_OK if all 🟢 and no action taken. Do NOT use Step 0/1/2/3/4 format. Do NOT use markdown tables. Do NOT use headers." }`"
 
-**After editing openclaw.json:** run `/new` in chat (or `openclaw gateway restart`) to pick up the change. Skills, agent profiles, and heartbeat config are loaded at session start — `/new` is the fastest path to apply them without bouncing the whole gateway.
+**After editing openclaw.json:** run `/new` in chat (or `openclaw gateway restart`) to pick up the change. Skills, agent profiles, and heartbeat config are loaded at session start - `/new` is the fastest path to apply them without bouncing the whole gateway.
 
 ### Shared Channel Fix
 
@@ -318,7 +313,7 @@ This enforces Rule 5 (Selective Engagement) at the gateway level.
 
 ## Channel Routing — Keeping Heartbeats on Discord
 
-The #1 OpenClaw 5.x routing complaint: heartbeats and cron briefings deliver to the web Control UI instead of Discord. Per the [channel-routing spec](https://docs.openclaw.ai/channels/channel-routing.md), the model never picks a channel — but **unsolicited** messages (no inbound to route back to) fall through to defaults that may not be what you want.
+The #1 OpenClaw 2026.x routing complaint: heartbeats and cron briefings deliver to the web Control UI instead of Discord. Per the [channel-routing spec](https://docs.openclaw.ai/channels/channel-routing.md), the model never picks a channel — but **unsolicited** messages (no inbound to route back to) fall through to defaults that may not be what you want.
 
 ### The Three Settings
 
@@ -381,14 +376,13 @@ Your existing memory files, SOUL.md, USER.md, AGENTS.md, WORKFLOWS.md, and all w
 - If still compressed: add the heartbeat prompt override which explicitly requests "blank line between each"
 
 **Agent still replies HEARTBEAT_OK without checking:**
-- Verify HEARTBEAT.md is in the workspace root (not in assets/)
-- Add the custom heartbeat.prompt override — it forces structured output
-- Check that HEARTBEAT.md isn't empty (OpenClaw skips empty files)
+- Verify the monitor scratch is set: `openclaw cron list --all`, then `openclaw cron scratch <jobId>` to view it
+- Add the custom heartbeat.prompt override - it forces structured output
+- Check the scratch isn't empty
 
 **HEARTBEAT_OK is showing up in chat (not being suppressed):**
-- Check `ackMaxChars` in your heartbeat config — the response must be shorter than this value
-- Verify the agent is replying with just `HEARTBEAT_OK` and no extra text
-- Default ackMaxChars should cover `HEARTBEAT_OK` (12 chars) — if it's set very low, increase it
+- Verify the agent is replying with just `HEARTBEAT_OK` and no extra text - suppression only applies when the reply, minus the acknowledgment, is at most 300 characters
+- `ackMaxChars` no longer exists in current OpenClaw; the suppression budget is fixed. Reply `NO_REPLY` also suppresses delivery
 
 **Agent responds in Discord when not mentioned:**
 - Set `requireMention: true` for ALL Discord guilds in your gateway config
@@ -401,8 +395,7 @@ Your existing memory files, SOUL.md, USER.md, AGENTS.md, WORKFLOWS.md, and all w
 - The 🟢-all-clear case already suppresses delivery
 
 **Heartbeats not firing:**
-- Run `openclaw heartbeat last` to check status
-- Run `./scripts/config-validator.sh` to audit all required settings at once (NEW v1.3.2)
+- Run `openclaw system heartbeat last` to check status
 - Verify `agents.defaults.heartbeat.every` isn't "0m"
 - Check that `every` and `target` exist in your heartbeat config — without them, heartbeats don't auto-fire
 - Check activeHours timezone
@@ -414,9 +407,9 @@ Your existing memory files, SOUL.md, USER.md, AGENTS.md, WORKFLOWS.md, and all w
 - MEMORY.md should stay under 4KB — it's read every session start
 
 **Don't know what config settings are missing:**
-- Run `./scripts/config-validator.sh` (NEW v1.3.2)
-- Checks: heartbeat (every, target, ackMaxChars, prompt), Discord (requireMention per guild), workspace files (SOUL.md, USER.md, MEMORY.md size, HEARTBEAT.md template version), VERSION.md file, ESCALATION.md
-- Reports 🟢 all clear / 🟡 warnings / 🔴 critical issues
+- Check heartbeat config: `every`, `target`, `prompt` under `agents.defaults.heartbeat`
+- Check the monitor scratch is set (see Layer 1)
+- Check Discord `requireMention` per guild, workspace files (SOUL.md, USER.md, MEMORY.md size), VERSION.md, ESCALATION.md
 
 **Agent's config file is clawdbot-mac.json or clawdbot.json (not openclaw.json):**
 - Older installs may use the pre-rename config file
