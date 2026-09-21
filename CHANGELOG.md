@@ -601,3 +601,12 @@ examples/
 ---
 
 *Built by Jeff J Hunter — https://os.aipersonamethod.com*
+
+## 2026-09-21 — OpenClaw 2026.9.5 compatibility (private test candidate, NOT published)
+
+- Retired HEARTBEAT.md layer: heartbeat-automation.md rewritten around the native heartbeat + monitor scratch checklist (`openclaw cron scratch <jobId> --set`); assets/HEARTBEAT-template.md and the three example HEARTBEAT.md files are now migration pointers; setup flow no longer copies HEARTBEAT.md into the workspace.
+- Command fixes: `openclaw heartbeat last` -> `openclaw system heartbeat last`; `ackMaxChars` references removed (suppression budget is now fixed at 300 chars; NO_REPLY also accepted); heartbeat `target: {kind: discordUser}` object form replaced with current `target: "discord"` + `to: "<id>"`.
+- Branding: "OpenClaw 5.x" -> "OpenClaw 2026.x" (OpenClaw has always used calendar versioning).
+- Frontmatter: inert envVars block moved into SKILL.md body (Step 5 note); description shortened to 171 chars (<220 compaction limit).
+- scripts/security-audit.sh: fixed fail-open default — scanning a literal "<WORKSPACE>" placeholder used to report "secure" on nothing; now resolves $OPENCLAW_WORKSPACE or cwd and errors on a nonexistent path.
+- Verified: all bash scripts pass bash -n; plugin (v3.0.0-alpha.5) passes tsc --noEmit + full build on Node 22; heartbeat_prompt_contribution hook renders 14-21 token status lines (96%+ under the 600-token v2 baseline) and correctly flags missing SOUL.md/MEMORY.md; plugin manifest shape matches current authoring docs; hook name confirmed present in OpenClaw 2026.9.5 source.
