@@ -1,5 +1,8 @@
 # 👔 Executive Assistant Starter Pack
 
+> **Note (2026.9):** the HEARTBEAT.md in this pack is retired - OpenClaw 2026.8.1+ uses the native heartbeat with a monitor-scratch checklist. See `references/heartbeat-automation.md`. The HEARTBEAT.md file here is a migration pointer.
+
+
 A pre-configured AI Persona setup for high-level executive support.
 
 ---
